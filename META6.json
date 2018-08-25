@@ -7,8 +7,8 @@
   "description" : "Interface to libfftw3",
   "test-depends" : [ "Test" ],
   "provides" : {
-    "Image::Libexif::Constants" : "lib/Math/FFT/Libfftw3/Constants.pm6",
-    "Image::Libexif::Raw" : "lib/Math/FFT/Libfftw3/Raw.pm6"
+    "Math::FFT::Libfftw3::Constants" : "lib/Math/FFT/Libfftw3/Constants.pm6",
+    "Math::FFT::Libfftw3::Raw" : "lib/Math/FFT/Libfftw3/Raw.pm6"
   },
   "authors" : [ "Fernando Santagata" ],
   "license": "Artistic-2.0",
