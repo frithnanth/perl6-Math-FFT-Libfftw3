@@ -5,7 +5,7 @@ unit module Math::FFT::Libfftw3::Raw:ver<0.0.1>;
 use NativeCall;
 use Math::FFT::Libfftw3::Constants;
 
-constant LIB = ('libfftw3.so', v3);
+constant LIB = ('libfftw3.so.3', v3);
 
 class fftw_plan is repr('CPointer') is export { * } # libfftw3 private struct
 class fftw_iodim is repr('CPointer') is export { * } # libfftw3 private struct
