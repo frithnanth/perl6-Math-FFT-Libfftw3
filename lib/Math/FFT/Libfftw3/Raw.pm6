@@ -149,7 +149,7 @@ This module requires the libfftw3 library to be installed. Please follow the ins
 =head2 Debian Linux
 
 =begin code
-sudo apt-get install libfftw3-3
+sudo apt-get install libfftw3-double3
 =end code
 
 The module looks for a library called libfftw3.so.
