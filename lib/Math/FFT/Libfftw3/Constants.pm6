@@ -2,8 +2,8 @@ use v6;
 
 unit module Math::FFT::Libfftw3::Constants:ver<0.0.1>;
 
-constant FFTW_FORWARD  is export = -1;
-constant FFTW_BACKWARD is export =  1;
+constant FFTW_FORWARD         is export = -1;
+constant FFTW_BACKWARD        is export =  1;
 
 constant FFTW_MEASURE         is export =  0;
 constant FFTW_DESTROY_INPUT   is export =  1 +<  0;
