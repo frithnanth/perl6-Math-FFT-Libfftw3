@@ -11,4 +11,4 @@ lives-ok { $p = fftw_alloc_complex(1024) }, 'allocate memory for complex numbers
 fftw_free($p);
 lives-ok { $p = fftw_alloc_real(1024) }, 'allocate memory for real numbers';
 fftw_free($p);
-
+done-testing
