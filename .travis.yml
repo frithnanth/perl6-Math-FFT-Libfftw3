@@ -1,11 +1,19 @@
-services:
-  - docker
+dist: trusty
+
+os:
+  - linux
+
+language: perl6
+
+perl6:
+  - '2018.06'
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install libfftw3-double3
 
 install:
-  - docker pull jjmerelo/test-perl6
-  - docker images
-  - docker run -t --entrypoint="/bin/sh" jjmerelo/test-perl6 -c "apk update && apk upgrade && apk add libfftw3-double3"
-  - docker run -t --entrypoint="/bin/sh" jjmerelo/test-perl6 -c "perl6 --version; which zef"
+  - rakudobrew build-zef && zef install .
 
 script:
-- docker run -t -v  $TRAVIS_BUILD_DIR:/test jjmerelo/test-perl6
+  - PERL6LIB=$PWD/lib prove -e perl6 -vr t/
