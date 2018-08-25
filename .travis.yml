@@ -8,9 +8,6 @@ language: perl6
 perl6:
   - '2018.06'
 
-before_install:
-  - dpkg -L libfftw3-double3
-
 install:
   - rakudobrew build-zef && zef install .
 
