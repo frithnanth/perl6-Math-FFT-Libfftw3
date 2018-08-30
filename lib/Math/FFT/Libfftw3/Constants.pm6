@@ -15,3 +15,6 @@ constant FFTW_PATIENT         is export =  1 +<  5;
 constant FFTW_ESTIMATE        is export =  1 +<  6;
 constant FFTW_WISDOM_ONLY     is export =  1 +< 21;
 
+enum fftw_r2r_kind is export <FFTW_R2HC FFTW_HC2R FFTW_DHT
+                              FFTW_REDFT00 FFTW_REDFT01 FFTW_REDFT10 FFTW_REDFT11
+                              FFTW_RODFT00 FFTW_RODFT01 FFTW_RODFT10 FFTW_RODFT11>;

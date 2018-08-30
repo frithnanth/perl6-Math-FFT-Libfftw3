@@ -7,10 +7,9 @@ use Math::FFT::Libfftw3::Constants;
 
 constant LIB = ('fftw3', v3);
 
-class fftw_plan is repr('CPointer') is export { * } # libfftw3 private struct
-class fftw_iodim is repr('CPointer') is export { * } # libfftw3 private struct
+class fftw_plan    is repr('CPointer') is export { * } # libfftw3 private struct
+class fftw_iodim   is repr('CPointer') is export { * } # libfftw3 private struct
 class fftw_iodim64 is repr('CPointer') is export { * } # libfftw3 private struct
-class fftw_r2r_kind is repr('CPointer') is export { * } # libfftw3 private struct
 
 sub fftw_malloc(size_t $size --> Pointer) is native(LIB) is export { * }
 sub fftw_free(Pointer $pointer) is native(LIB) is export { * }
@@ -85,21 +84,21 @@ sub fftw_plan_guru64_split_dft_c2r(int32 $rank, fftw_iodim64 $dims, int32 $howma
 
 sub fftw_plan_many_r2r(int32 $rank, CArray[int32] $n, int32 $howmany, CArray[num64] $in, CArray[int32] $inembed,
     int32 $istride, int32 $idist, CArray[num64] $out, CArray[int32] $onembed, int32 $ostride, int32 $odist,
-    fftw_r2r_kind $kind, uint32 $flags --> fftw_plan) is native(LIB) is export { * }
-sub fftw_plan_r2r(int32 $rank, CArray[int32] $n, CArray[num64] $in, CArray[num64] $out, fftw_r2r_kind $kind,
+    int32 $kind, uint32 $flags --> fftw_plan) is native(LIB) is export { * }
+sub fftw_plan_r2r(int32 $rank, CArray[int32] $n, CArray[num64] $in, CArray[num64] $out, CArray[int32] $kind,
     uint32 $flags --> fftw_plan) is native(LIB) is export { * }
-sub fftw_plan_r2r_1d(int32 $n, CArray[num64] $in, CArray[num64] $out, fftw_r2r_kind $kind, uint32 $flags
+sub fftw_plan_r2r_1d(int32 $n, CArray[num64] $in, CArray[num64] $out, int32 $kind, uint32 $flags
     --> fftw_plan) is native(LIB) is export { * }
-sub fftw_plan_r2r_2d(int32 $n0, int32 $n1, CArray[num64] $in, CArray[num64] $out, fftw_r2r_kind $kind0,
-    fftw_r2r_kind $kind1, uint32 $flags --> fftw_plan) is native(LIB) is export { * }
+sub fftw_plan_r2r_2d(int32 $n0, int32 $n1, CArray[num64] $in, CArray[num64] $out, int32 $kind0,
+    int32 $kind1, uint32 $flags --> fftw_plan) is native(LIB) is export { * }
 sub fftw_plan_r2r_3d(int32 $n0, int32 $n1, int32 $n2, CArray[num64] $in, CArray[num64] $out,
-    fftw_r2r_kind $kind0, fftw_r2r_kind $kind1, fftw_r2r_kind $kind2, uint32 $flags --> fftw_plan)
+    int32 $kind0, int32 $kind1, int32 $kind2, uint32 $flags --> fftw_plan)
     is native(LIB) is export { * }
 sub fftw_plan_guru_r2r(int32 $rank, fftw_iodim $dims, int32 $howmany_rank, fftw_iodim $howmany_dims,
-    CArray[num64] $in, CArray[num64] $out, fftw_r2r_kind $kind, uint32 $flags --> fftw_plan)
+    CArray[num64] $in, CArray[num64] $out, CArray[int32] $kind, uint32 $flags --> fftw_plan)
     is native(LIB) is export { * }
 sub fftw_plan_guru64_r2r(int32 $rank, fftw_iodim64 $dims, int32 $howmany_rank, fftw_iodim64 $howmany_dims,
-    CArray[num64] $in, CArray[num64] $out, fftw_r2r_kind $kind, uint32 $flags --> fftw_plan)
+    CArray[num64] $in, CArray[num64] $out, CArray[int32] $kind, uint32 $flags --> fftw_plan)
     is native(LIB) is export { * }
 
 sub fftw_execute(fftw_plan $p) is native(LIB) is export { * }
