@@ -18,7 +18,6 @@ subtest {
   my $back = CArray[num64].allocate(8);
   my fftw_plan $planr = fftw_plan_dft_c2r_1d(6, $out, $back, FFTW_ESTIMATE);
   fftw_execute($planr);
-  #say $back.list.perl;
   is-deeply (($back.list »/» 6)[^6])».round(10⁻¹²),
             (1.0, 2.0 … 6.0),
             'inverse transform';
