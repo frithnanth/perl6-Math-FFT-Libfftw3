@@ -8,7 +8,8 @@
   "test-depends" : [ "Test" ],
   "provides" : {
     "Math::FFT::Libfftw3::Constants" : "lib/Math/FFT/Libfftw3/Constants.pm6",
-    "Math::FFT::Libfftw3::Raw" : "lib/Math/FFT/Libfftw3/Raw.pm6"
+    "Math::FFT::Libfftw3::Raw" : "lib/Math/FFT/Libfftw3/Raw.pm6",
+    "Math::FFT::Libfftw3" : "lib/Math/FFT/Libfftw3.pm6"
   },
   "authors" : [ "Fernando Santagata" ],
   "license": "Artistic-2.0",
