@@ -139,7 +139,12 @@ use v6;
 
 =head1 DESCRIPTION
 
-For more details on libfftw3 see L<http://fftw.org/>.
+Math::FFT::Libfftw3 provides an interface to libfftw3 and allows you to perform Fast Fourier Transforms.
+
+=head1 Documentation
+
+For more details on libfftw see L<http://www.fftw.org/>.
+The manual is available here L<http://www.fftw.org/fftw3.pdf>
 
 =head1 Prerequisites
 
@@ -168,6 +173,12 @@ To run the tests:
 =begin code
 $ prove -e "perl6 -Ilib"
 =end code
+
+=head1 Note
+
+Math::FFT::Libfftw3 relies on a C library which might not be present in one's
+installation, so it's not a substitute for a pure Perl6 module.
+If you need a pure Perl6 module, Math::FourierTransform works just fine.
 
 =head1 Author
 
