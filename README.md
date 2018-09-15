@@ -17,10 +17,10 @@ For more examples see the `example` directory.
 
 Math::FFT::Libfftw3 provides an interface to libfftw3 and allows you to perform Fast Fourier Transforms.
 
-For more details on libfftw see L<http://www.fftw.org/>.
-
 ## Documentation
 
+For more details on libfftw see [the FFTW home](http://www.fftw.org/).
+The manual is available [here](http://www.fftw.org/fftw3.pdf).
 
 ## Prerequisites
 This module requires the libfftw3 library to be installed. Please follow the instructions below based on your platform:
