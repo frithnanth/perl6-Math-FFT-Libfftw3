@@ -18,8 +18,8 @@ say 'Math::FourierTransform:   ' ~ now - $begin1 ~ ' sec';
 my $begin2 = now;
 my $in = CArray[num64].new: (1..6)».Complex».reals.flat;
 my $out = CArray[num64].allocate(12);
+my fftw_plan $pland = fftw_plan_dft_1d(6, $in, $out, FFTW_FORWARD, FFTW_ESTIMATE);
 for ^10000 {
-  my fftw_plan $pland = fftw_plan_dft_1d(6, $in, $out, FFTW_FORWARD, FFTW_ESTIMATE);
   fftw_execute($pland);
 }
 say 'Math::FFT::Libfftw3::Raw: ' ~ now - $begin2 ~ ' sec';
