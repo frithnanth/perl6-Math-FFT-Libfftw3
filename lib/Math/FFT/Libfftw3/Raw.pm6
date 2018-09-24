@@ -1,6 +1,6 @@
 use v6;
 
-unit module Math::FFT::Libfftw3::Raw:ver<0.0.1>;
+unit module Math::FFT::Libfftw3::Raw:ver<0.0.1>:auth<cpan:FRITH>;
 
 use NativeCall;
 use Math::FFT::Libfftw3::Constants;
@@ -121,7 +121,18 @@ sub fftw_set_timelimit(num64 $t) is native(LIB) is export { * }
 sub fftw_plan_with_nthreads(int32 $nthreads) is native(LIB) is export { * }
 sub fftw_init_threads(--> int32) is native(LIB) is export { * }
 sub fftw_cleanup_threads() is native(LIB) is export { * }
-
+sub fftw_make_planner_thread_safe() is native(LIB) is export { * }
+sub fftw_export_wisdom_to_filename(Str $filename --> int32) is native(LIB) is export { * }
+sub fftw_export_wisdom_to_string(--> Str) is native(LIB) is export { * }
+sub fftw_import_system_wisdom(--> int32) is native(LIB) is export { * }
+sub fftw_import_wisdom_from_filename(Str $filename --> int32) is native(LIB) is export { * }
+sub fftw_import_wisdom_from_string(Str $input_string --> int32) is native(LIB) is export { * }
+sub fftw_print_plan(fftw_plan $p) is native(LIB) is export { * }
+sub fftw_sprint_plan(fftw_plan $p --> Str) is native(LIB) is export { * }
+sub fftw_flops(fftw_plan $p, num64 $add is rw, num64 $mul is rw, num64 $fmas is rw) is native(LIB) is export { * }
+sub fftw_estimate_cost(fftw_plan $p --> num64) is native(LIB) is export { * }
+sub fftw_cost(fftw_plan $p --> num64) is native(LIB) is export { * }
+sub fftw_alignment_of(num64 $p is rw --> int32) is native(LIB) is export { * }
 
 
 =begin pod
