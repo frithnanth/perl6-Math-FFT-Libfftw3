@@ -1,6 +1,6 @@
 use v6;
 
-unit class Math::FFT::Libfftw3:ver<0.0.1>;
+unit class Math::FFT::Libfftw3:ver<0.0.1>:auth<cpan:FRITH>;
 
 use NativeCall;
 use Math::FFT::Libfftw3::Raw;
@@ -15,38 +15,159 @@ class X::Libfftw3 is Exception
   method message { "Error {$!errno}: $!error" }
 }
 
-has num64 @.carrdata;
+has num64     @.in;
+has num64     @.out;
+has int32     $.rank;
+has int32     @.dims;
+has int32     $!direction;
+has fftw_plan $!plan;
 
-submethod BUILD(Positional :$data!, Bool :$pair? = False)
+submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 {
-  given $data[0].^name {
-    when 'Complex' {
-      @!carrdata := CArray[num64].new: $data.map(|*)».reals.flat.flat;
+  given @data[0].WHAT {
+    when Complex {
+      @!in := CArray[num64].new: @data.map(|*)».reals.List.flat;
     }
-    when 'Int' | 'Num' {
-      my @in2 = 0 xx ($data.elems * 2);
-      for $data.pairs -> $p {
+    when Int | Rat | Num {
+      my @in2 = 0 xx (@data.elems * 2);
+      for @data.pairs -> $p {
         @in2[$p.key * 2] = $p.value;
       }
-      @!carrdata := CArray[num64].new: @in2».Num.flat;
+      @!in := CArray[num64].new: @in2».Num.flat;
     }
     default {
-      fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Int, Num or Complex';
+      fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Int, Rat, Num or Complex';
     }
   }
-  if $pair {
-    given $data[0].^name {
-      when 'Int' | 'Num' {
-        @!carrdata := CArray[num64].new: $data».Num.flat;
-      }
-      default {
-        fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Int or Num';
-      }
-    }
+  with @dims[0] {
+    @!dims := CArray[int32].new: @dims;
+    $!rank  = @dims.elems;
+  } else {
+    @!dims := CArray[int32].new: (@!in.elems / 2).Int;
+    $!rank  = 1;
+  }
+  # Invoking a plan with the FFTW_MEASURE flag destroys the input array; save its values.
+  my @savein := CArray[num64].new: @!in.list;
+  @!out      := CArray[num64].new: 0e0 xx @!in.elems;
+  $!plan      = fftw_plan_dft($!rank, @!dims, @!in, @!out, $!direction, $flag);
+  @!in       := CArray[num64].new: @savein.list;
+}
+
+submethod DESTROY
+{
+  fftw_destroy_plan($!plan) with $!plan;
+  fftw_cleanup;
+}
+
+method execute(--> Positional)
+{
+  fftw_execute($!plan);
+  if $!direction == FFTW_FORWARD {
+    return @!out.map(-> $r, $i { Complex.new($r, $i) }).list;
+  } else {
+    # backward trasforms are not normalized
+    return (@!out.list »/» [*] @!dims.list).map(-> $r, $i { Complex.new($r, $i) }).list;
   }
 }
 
 =begin pod
 
+=head1 NAME
+
+Math::FFT::Libfftw3 - High-level bindings to libfftw3
+
+=head1 SYNOPSIS
+=begin code
+
+use v6;
+
+use Math::FFT::Libfftw3;
+use Math::FFT::Libfftw3::Constants; # for the FFTW_BACKWARD constant
+
+# direct 1D transform
+my Math::FFT::Libfftw3 $fft .= new: data => 1..6;
+my @out = $fft.execute;
+put @out;
+# reverse 1D transform
+my Math::FFT::Libfftw3 $fftr .= new: data => @out, direction => FFTW_BACKWARD;
+my @outr = $fftr.execute;
+put @outr».round(10⁻¹²);
+
+=end code
+
+=begin code
+
+use v6;
+
+use Math::FFT::Libfftw3;
+use Math::FFT::Libfftw3::Constants; # for the FFTW_BACKWARD constant
+
+# direct 2D transform
+my Math::FFT::Libfftw3 $fft .= new: data => 1..18, dims => (6, 3);
+my @out = $fft.execute;
+put @out;
+# reverse 2D transform
+my Math::FFT::Libfftw3 $fftr .= new: data => @out, dims => (6,3), direction => FFTW_BACKWARD;
+my @outr = $fftr.execute;
+put @outr».round(10⁻¹²);
+
+=end code
+
+=head1 DESCRIPTION
+
+B<Math::FFT::Libfftw3> provides an OO interface to libfftw3.
+
+=head2 new(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+
+=head2 execute(--> Positional)
+
+Executes the transform and returns the output array of values as
+
+=head1 Documentation
+
+For more details on libfftw see L<http://www.fftw.org/>.
+The manual is available here L<http://www.fftw.org/fftw3.pdf>
+
+=head1 Prerequisites
+
+This module requires the libfftw3 library to be installed. Please follow the instructions below based on your platform:
+
+=head2 Debian Linux
+
+=begin code
+sudo apt-get install libfftw3-double3
+=end code
+
+The module looks for a library called libfftw3.so.
+
+=head1 Installation
+
+To install it using zef (a module management tool):
+
+=begin code
+$ zef install Math::FFT::Libfftw3
+=end code
+
+=head1 Testing
+
+To run the tests:
+
+=begin code
+$ prove -e "perl6 -Ilib"
+=end code
+
+=head1 Note
+
+Math::FFT::Libfftw3 relies on a C library which might not be present in one's
+installation, so it's not a substitute for a pure Perl6 module.
+If you need a pure Perl6 module, Math::FourierTransform works just fine.
+
+=head1 Author
+
+Fernando Santagata
+
+=head1 License
+
+The Artistic License 2.0
 
 =end pod
