@@ -91,16 +91,16 @@ Math::FFT::Libfftw3 - High-level bindings to libfftw3
 use v6;
 
 use Math::FFT::Libfftw3;
-use Math::FFT::Libfftw3::Constants; # for the FFTW_BACKWARD constant
+use Math::FFT::Libfftw3::Constants; # needed for the FFTW_BACKWARD constant
 
-# direct 1D transform
-my Math::FFT::Libfftw3 $fft .= new: data => 1..6;
+my @in = (0, π/100 … 2*π)».sin;
+put @in».Complex».round(10⁻¹²); # print the original array as complex values rounded to 10⁻¹²
+my Math::FFT::Libfftw3 $fft .= new: data => @in;
 my @out = $fft.execute;
-put @out;
-# reverse 1D transform
+put @out; # print the direct transform output
 my Math::FFT::Libfftw3 $fftr .= new: data => @out, direction => FFTW_BACKWARD;
 my @outr = $fftr.execute;
-put @outr».round(10⁻¹²);
+put @outr».round(10⁻¹²); # print the backward transform output rounded to 10⁻¹²
 
 =end code
 
@@ -109,7 +109,7 @@ put @outr».round(10⁻¹²);
 use v6;
 
 use Math::FFT::Libfftw3;
-use Math::FFT::Libfftw3::Constants; # for the FFTW_BACKWARD constant
+use Math::FFT::Libfftw3::Constants; # needed for the FFTW_BACKWARD constant
 
 # direct 2D transform
 my Math::FFT::Libfftw3 $fft .= new: data => 1..18, dims => (6, 3);
@@ -124,13 +124,27 @@ put @outr».round(10⁻¹²);
 
 =head1 DESCRIPTION
 
-B<Math::FFT::Libfftw3> provides an OO interface to libfftw3.
+B<Math::FFT::Libfftw3> provides an OO interface to libfftw3 and allows you to perform Fast Fourier Transforms.
 
 =head2 new(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 
+The constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr).
+So it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
+
+The only mandatory argument is B<@data>.
+Multidimensional data are expressed in row-major order (see L<#Documentation>) and the array B<@dims> must be
+passed to the constructor, or the data will be interpreted as a 1D array.
+If one uses a shaped array, there's no need to pass the B<@dims> array, because the dimensions will be read
+from the array itself.
+
+The B<$direction> parameter is used to specify a direct or backward transform; it defaults to FFTW_FORWARD.
+
+The B<$flag> parameter specifies the way the underlying library has to analyze the data in order to create a plan
+for the transform; it defaults to FFTW_ESTIMATE (see L<#Documentation>).
+
 =head2 execute(--> Positional)
 
-Executes the transform and returns the output array of values as
+Executes the transform and returns the output array of values as a normalized row-major array of Complex.
 
 =head1 Documentation
 
@@ -170,6 +184,26 @@ $ prove -e "perl6 -Ilib"
 Math::FFT::Libfftw3 relies on a C library which might not be present in one's
 installation, so it's not a substitute for a pure Perl6 module.
 If you need a pure Perl6 module, Math::FourierTransform works just fine.
+
+=head1 TODO
+
+A lot.
+
+The underlying C library provides functions for trasnforming a complex input into a complex output: a c2c transform.
+There are other possibilities: r2c and c2r transforms, and r2r transforms:
+
+=item DFT con real input, complex-Hermitian halfcomplex output
+=item DFT con real input, even/odd symmetry (discrete cosine/sine transform: DCT/DST)
+=item DHT Discrete Hartley Transform
+
+Besides:
+
+=item There's a I<guru> interface to apply the same plan to different data.
+=item There's a I<wisdom> interface to save and load the plan.
+=item There's a I<multi-threaded> interface, which supports parallel one- and multi-dimensional transforms.
+=item There's a I<distributed-memory> interface, for parallel systems supporting the MPI message-passing interface.
+
+Future development might change the API or might provide different classes for each data type.
 
 =head1 Author
 
