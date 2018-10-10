@@ -6,6 +6,8 @@ use NativeCall;
 use Math::FFT::Libfftw3::Raw;
 use Math::FFT::Libfftw3::Constants;
 
+die 'This module needs at least v2018.09' if $*PERL.compiler.version < v2018.09;
+
 constant TYPE-ERROR          is export = 1;
 
 class X::Libfftw3 is Exception
@@ -24,13 +26,18 @@ has fftw_plan $!plan;
 
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 {
-  given @data[0].WHAT {
+  if @data.WHAT ~~ Array && @data.shape[0].WHAT ~~ Int {
+    @!dims := CArray[int32].new: @data.shape;
+    $!rank  = @!dims.elems;
+  }
+  # .Array "flattens" a shaped array (since 2018.09) and does nothing to other types
+  given @data.Array[0].WHAT {
     when Complex {
-      @!in := CArray[num64].new: @data.map(|*)».reals.List.flat;
+      @!in := CArray[num64].new: @data.Array.map(|*)».reals.List.flat;
     }
     when Int | Rat | Num {
-      my @in2 = 0 xx (@data.elems * 2);
-      for @data.pairs -> $p {
+      my @in2 = 0 xx (@data.Array.flat.elems * 2);
+      for @data.Array.pairs -> $p {
         @in2[$p.key * 2] = $p.value;
       }
       @!in := CArray[num64].new: @in2».Num.flat;
@@ -39,12 +46,14 @@ submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_E
       fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Int, Rat, Num or Complex';
     }
   }
-  with @dims[0] {
-    @!dims := CArray[int32].new: @dims;
-    $!rank  = @dims.elems;
-  } else {
-    @!dims := CArray[int32].new: (@!in.elems / 2).Int;
-    $!rank  = 1;
+  if @data.WHAT !~~ Array || @data.shape[0].WHAT ~~ Whatever {
+    with @dims[0] {
+      @!dims := CArray[int32].new: @dims;
+      $!rank  = @dims.elems;
+    } else {
+      @!dims := CArray[int32].new: (@!in.elems / 2).Int;
+      $!rank  = 1;
+    }
   }
   # Invoking a plan with the FFTW_MEASURE flag destroys the input array; save its values.
   my @savein := CArray[num64].new: @!in.list;
