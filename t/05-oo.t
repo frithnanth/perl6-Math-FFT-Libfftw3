@@ -96,6 +96,10 @@ subtest {
     my Math::FFT::Libfftw3 $fft .= new: data => (<1e0>, <2e0>, <3e0>, <4e0>, <5e0>, <6e0>);
     is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of NumStr';
   }
+  {
+    my Math::FFT::Libfftw3 $fft .= new: data => (<1+0i>, <2+0i>, <3+0i>, <4+0i>, <5+0i>, <6+0i>);
+    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of ComplexStr';
+  }
 }, 'Other types - 1D transform';
 subtest {
   my Math::FFT::Libfftw3 $fft .= new: data => 1..18, dims => (6, 3);
