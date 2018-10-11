@@ -52,12 +52,12 @@ Math::FFT::Libfftw3 provides an interface to libfftw3 and allows you to perform 
 
 #### new(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 
-The constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr).
+The constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr, ComplexStr).
 So it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
 
 The only mandatory argument is **@data**.
-Multidimensional data are expressed in row-major order (see the C Library Documentation) and the array **@dims**
-must be passed to the constructor, or the data will be interpreted as a 1D array.
+Multidimensional data are expressed in row-major order (see the [C Library Documentation](#clib))
+and the array **@dims** must be passed to the constructor, or the data will be interpreted as a 1D array.
 If one uses a shaped array, there's no need to pass the **@dims** array, because the dimensions will be read
 from the array itself.
 
@@ -70,7 +70,7 @@ for the transform; it defaults to `FFTW_ESTIMATE` (see the C Library Documentati
 
 Executes the transform and returns the output array of values as a normalized row-major array of Complex.
 
-## C Library documentation
+## [C Library documentation](#clib)
 
 For more details on libfftw see [the FFTW home](http://www.fftw.org/).
 The manual is available [here](http://www.fftw.org/fftw3.pdf).
@@ -106,8 +106,10 @@ $ prove -e "perl6 -Ilib"
 ## Note
 
 Math::FFT::Libfftw3 relies on a C library which might not be present in one's
-installation, so it's not a substitute for a pure Perl6 module.
-If you need a pure Perl6 module, Math::FourierTransform works just fine.
+installation, so it's not a substitute for a pure Perl 6 module.
+If you need a pure Perl 6 module, Math::FourierTransform works just fine.
+
+This module need Perl 6 ≥ 2018.09 in order to use shaped arrays.
 
 ## TODO
 

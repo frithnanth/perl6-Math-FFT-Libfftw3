@@ -128,11 +128,11 @@ B<Math::FFT::Libfftw3> provides an OO interface to libfftw3 and allows you to pe
 
 =head2 new(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 
-The constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr).
+The constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr, ComplexStr).
 So it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
 
 The only mandatory argument is B<@data>.
-Multidimensional data are expressed in row-major order (see L<#Documentation>) and the array B<@dims> must be
+Multidimensional data are expressed in row-major order (see L<C Library Documentation|#clib>) and the array B<@dims> must be
 passed to the constructor, or the data will be interpreted as a 1D array.
 If one uses a shaped array, there's no need to pass the B<@dims> array, because the dimensions will be read
 from the array itself.
@@ -146,7 +146,7 @@ for the transform; it defaults to FFTW_ESTIMATE (see L<#Documentation>).
 
 Executes the transform and returns the output array of values as a normalized row-major array of Complex.
 
-=head1 Documentation
+=head1 L<C Library Documentation|#clib>
 
 For more details on libfftw see L<http://www.fftw.org/>.
 The manual is available here L<http://www.fftw.org/fftw3.pdf>
@@ -182,8 +182,10 @@ $ prove -e "perl6 -Ilib"
 =head1 Note
 
 Math::FFT::Libfftw3 relies on a C library which might not be present in one's
-installation, so it's not a substitute for a pure Perl6 module.
-If you need a pure Perl6 module, Math::FourierTransform works just fine.
+installation, so it's not a substitute for a pure Perl 6 module.
+If you need a pure Perl 6 module, Math::FourierTransform works just fine.
+
+This module need Perl 6 ≥ 2018.09 in order to use shaped arrays.
 
 =head1 TODO
 
