@@ -146,6 +146,36 @@ for the transform; it defaults to FFTW_ESTIMATE (see L<#Documentation>).
 
 Executes the transform and returns the output array of values as a normalized row-major array of Complex.
 
+=head2 Attributes
+
+Some of this class' attributes are readable:
+
+=item @.in
+=item @.out
+=item $.rank
+=item @.dims
+
+Since their data type is native, there is an additional passage to get the values of the arrays:
+
+=begin code
+
+use Math::FFT::Libfftw3;
+
+my $fft = Math::FFT::Libfftw3.new: data => 1..6;
+say $fft.in.list;    # say $fft.in; doesn't work as one might expect
+
+=end code
+
+This program prints
+
+=begin code
+
+(1 0 2 0 3 0 4 0 5 0 6 0)
+
+=end code
+
+because the C library's representation of the Complex type is just a couple of real numbers.
+
 =head1 L<C Library Documentation|#clib>
 
 For more details on libfftw see L<http://www.fftw.org/>.
@@ -179,13 +209,27 @@ To run the tests:
 $ prove -e "perl6 -Ilib"
 =end code
 
-=head1 Note
+=head1 Notes
 
 Math::FFT::Libfftw3 relies on a C library which might not be present in one's
 installation, so it's not a substitute for a pure Perl 6 module.
 If you need a pure Perl 6 module, Math::FourierTransform works just fine.
 
 This module need Perl 6 ≥ 2018.09 in order to use shaped arrays.
+
+When using Math::Matrix, pass the object this way:
+
+=begin code
+
+use Math::Matrix;
+use Math::FFT::Libfftw3;
+
+my $matrix = Math::Matrix.new( [[1,2],[3,4]] );
+my $fft = Math::FFT::Libfftw3.new: data => $matrix.list-rows.flat, dims => (2, 2);
+
+=end code
+
+Note that in this case the B<dims> parameter is mandatory, because Math::Matrix doesn't use shaped matrices yet.
 
 =head1 TODO
 
