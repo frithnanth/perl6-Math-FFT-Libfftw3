@@ -6,8 +6,14 @@ use Math::FFT::Libfftw3;
 use Math::FFT::Libfftw3::Constants;
 use NativeCall;
 
+dies-ok { my $fft = Math::FFT::Libfftw3.new }, 'dies if data is not passed';
+throws-like
+  { Math::FFT::Libfftw3.new: data => <a b c> },
+  X::Libfftw3,
+  message => /Wrong ' ' type/,
+  'fails with wrong data';
 subtest {
-  my Math::FFT::Libfftw3 $fft .= new: data => 1..6, :!pair;
+  my Math::FFT::Libfftw3 $fft .= new: data => 1..6;
   isa-ok $fft, Math::FFT::Libfftw3, 'object type';
   isa-ok $fft.in, 'NativeCall::Types::CArray[num64]', 'CArray data type';
   is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'input array';
@@ -100,7 +106,7 @@ subtest {
     my Math::FFT::Libfftw3 $fft .= new: data => (<1+0i>, <2+0i>, <3+0i>, <4+0i>, <5+0i>, <6+0i>);
     is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of ComplexStr';
   }
-}, 'Other types - 1D transform';
+}, 'Other data types - 1D transform';
 subtest {
   my Math::FFT::Libfftw3 $fft .= new: data => 1..18, dims => (6, 3);
   cmp-ok $fft.rank, '==', 2, 'rank of data vector/matrix';
@@ -164,10 +170,42 @@ subtest {
   my @outr = $fftr.execute;
   is-deeply @outr».round(10⁻¹²), [1.0+0i, 2.0+0i … 18.0+0i], 'inverse transform';
 }, 'Shaped matrix of Int - 2D transform';
-throws-like
-  { Math::FFT::Libfftw3.new: data => <a b c> },
-  X::Libfftw3,
-  message => /Wrong ' ' type/,
-  'fails with wrong data';
+subtest {
+  if (try require Math::Matrix) !=== Nil {
+    my $matrix = Math::Matrix.new: [[1,2,3],[4,5,6],[7,8,9],[10,11,12],[13,14,15],[16,17,18]];
+    my Math::FFT::Libfftw3 $fft .= new: data => $matrix.list-rows.flat, dims => (6,3);
+    cmp-ok $fft.rank, '==', 2, 'rank of data vector/matrix';
+    cmp-ok $fft.dims[0], '==', 6, 'first dimension of vector/matrix';
+    cmp-ok $fft.dims[1], '==', 3, 'second dimension of vector/matrix';
+    my @out;
+    lives-ok { @out = $fft.execute }, 'execute transform';
+    is-deeply @out».round(10⁻¹²),
+      [171e0 + 0e0i,
+        -9e0 + 5.196152422706632e0i,
+        -9e0 + -5.196152422706632e0i,
+       -27e0 + 46.76537180435968e0i,
+         0e0 + 0e0i,
+         0e0 + 0e0i,
+       -27e0 + 15.588457268119894e0i,
+         0e0 + 0e0i,
+         0e0 + 0e0i,
+       -27e0 + 0e0i,
+         0e0 + 0e0i,
+         0e0 + 0e0i,
+       -27e0 + -15.588457268119894e0i,
+         0e0 + 0e0i,
+         0e0 + 0e0i,
+       -27e0 + -46.76537180435968e0i,
+         0e0 + 0e0i,
+         0e0 + 0e0i]».round(10⁻¹²),
+      'direct transform';
+    my Math::FFT::Libfftw3 $fftr .= new: data => @out, dims => (6,3), direction => FFTW_BACKWARD;
+    my @outr = $fftr.execute;
+    is-deeply @outr».round(10⁻¹²), [1.0+0i, 2.0+0i … 18.0+0i], 'inverse transform';
+  } else {
+    plan 1;
+    skip-rest 'Math::Matrix not found';
+  }
+}, 'Math::Matrix';
 
 done-testing;
