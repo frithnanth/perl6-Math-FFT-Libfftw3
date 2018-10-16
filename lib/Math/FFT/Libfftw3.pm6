@@ -9,6 +9,7 @@ use Math::FFT::Libfftw3::Constants;
 die 'This module needs at least v2018.09' if $*PERL.compiler.version < v2018.09;
 
 constant TYPE-ERROR          is export = 1;
+constant DIRECTION-ERROR     is export = 2;
 
 class X::Libfftw3 is Exception
 {
@@ -26,12 +27,11 @@ has fftw_plan $!plan;
 
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 {
-  if @data.WHAT ~~ Array && @data.shape[0].WHAT ~~ Int {
-    @!dims := CArray[int32].new: @data.shape;
-    $!rank  = @!dims.elems;
-  }
-  # .Array "flattens" a shaped array (since 2018.09) and does nothing to other types
-  given @data.Array[0].WHAT {
+  # TODO Array of Array
+  # do gather @data.deepmap(*.take)
+  #
+  # .Array flattens a shaped array (since Rakudo 2018.09) and does nothing to a simple array
+  given @data.Array[0] {
     when Complex {
       @!in := CArray[num64].new: @data.Array.map(|*)».reals.List.flat;
     }
@@ -46,7 +46,11 @@ submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_E
       fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Int, Rat, Num or Complex';
     }
   }
-  if @data.WHAT !~~ Array || @data.shape[0].WHAT ~~ Whatever {
+  # Initialize @!dims and $!rank
+  if @data ~~ Array && @data.shape[0] ~~ Int {
+    @!dims := CArray[int32].new: @data.shape;
+    $!rank  = @!dims.elems;
+  }elsif @data !~~ Array || @data.shape[0] ~~ Whatever {
     with @dims[0] {
       @!dims := CArray[int32].new: @dims;
       $!rank  = @dims.elems;
@@ -55,7 +59,7 @@ submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_E
       $!rank  = 1;
     }
   }
-  # Invoking a plan with the FFTW_MEASURE flag destroys the input array; save its values.
+  # Create a plan. The FFTW_MEASURE flag destroys the input array; save its values.
   my @savein := CArray[num64].new: @!in.list;
   @!out      := CArray[num64].new: 0e0 xx @!in.elems;
   $!plan      = fftw_plan_dft($!rank, @!dims, @!in, @!out, $!direction, $flag);
@@ -71,11 +75,17 @@ submethod DESTROY
 method execute(--> Positional)
 {
   fftw_execute($!plan);
-  if $!direction == FFTW_FORWARD {
-    return @!out.map(-> $r, $i { Complex.new($r, $i) }).list;
-  } else {
-    # backward trasforms are not normalized
-    return (@!out.list »/» [*] @!dims.list).map(-> $r, $i { Complex.new($r, $i) }).list;
+  given $!direction {
+    when FFTW_FORWARD {
+      return @!out.map(-> $r, $i { Complex.new($r, $i) }).list;
+    }
+    when FFTW_BACKWARD {
+      # backward trasforms are not normalized
+      return (@!out.list »/» [*] @!dims.list).map(-> $r, $i { Complex.new($r, $i) }).list;
+    }
+    default {
+      fail X::Libfftw3.new: errno => DIRECTION-ERROR, error => 'Wrong direction. Try FFTW_FORWARD or FFTW_BACKWARD';
+    }
   }
 }
 
