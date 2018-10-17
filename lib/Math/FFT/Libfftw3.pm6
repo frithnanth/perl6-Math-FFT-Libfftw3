@@ -6,10 +6,9 @@ use NativeCall;
 use Math::FFT::Libfftw3::Raw;
 use Math::FFT::Libfftw3::Constants;
 
-die 'This module needs at least v2018.09' if $*PERL.compiler.version < v2018.09;
-
 constant TYPE-ERROR          is export = 1;
 constant DIRECTION-ERROR     is export = 2;
+constant NO-DIMS             is export = 3;
 
 class X::Libfftw3 is Exception
 {
@@ -25,19 +24,42 @@ has int32     @.dims;
 has int32     $!direction;
 has fftw_plan $!plan;
 
+method plan($flag --> Nil)
+{
+  # Create a plan. The FFTW_MEASURE flag destroys the input array; save its values.
+  my @savein := CArray[num64].new: @!in.list;
+  @!out      := CArray[num64].new: 0e0 xx @!in.elems;
+  $!plan      = fftw_plan_dft($!rank, @!dims, @!in, @!out, $!direction, $flag);
+  @!in       := CArray[num64].new: @savein.list;
+}
+
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 {
-  # TODO Array of Array
-  # do gather @data.deepmap(*.take)
-  #
-  # .Array flattens a shaped array (since Rakudo 2018.09) and does nothing to a simple array
-  given @data.Array[0] {
+  # What kind of Positional?
+  my @ndata;
+  if @data ~~ Array && @data.shape[0] ~~ Int {              # shaped array
+    die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
+      if $*PERL.compiler.version < v2018.09;
+    @!dims := CArray[int32].new: @data.shape;
+    $!rank  = @!dims.elems;
+    @ndata := @data.Array; # .Array flattens a shaped array since Rakudo 2018.09
+  } elsif @data ~~ Array && @data[0] ~~ Array {             # array of arrays
+    fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
+      if @dims.elems == 0;
+    @ndata  = do gather @data.deepmap(*.take);
+  } elsif @data !~~ Array || @data.shape[0] ~~ Whatever {   # plain array or Positional
+    @ndata := @data;
+  } else {
+    fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Not a Positional';
+  }
+  # What data type?
+  given @ndata[0] {
     when Complex {
-      @!in := CArray[num64].new: @data.Array.map(|*)».reals.List.flat;
+      @!in := CArray[num64].new: @ndata.map(|*)».reals.List.flat;
     }
     when Int | Rat | Num {
-      my @in2 = 0 xx (@data.Array.flat.elems * 2);
-      for @data.Array.pairs -> $p {
+      my @in2 = 0 xx (@ndata.flat.elems * 2);
+      for @ndata.pairs -> $p {
         @in2[$p.key * 2] = $p.value;
       }
       @!in := CArray[num64].new: @in2».Num.flat;
@@ -46,11 +68,8 @@ submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_E
       fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Int, Rat, Num or Complex';
     }
   }
-  # Initialize @!dims and $!rank
-  if @data ~~ Array && @data.shape[0] ~~ Int {
-    @!dims := CArray[int32].new: @data.shape;
-    $!rank  = @!dims.elems;
-  }elsif @data !~~ Array || @data.shape[0] ~~ Whatever {
+  # Initialize @!dims and $!rank when @data is not shaped or when is not an array
+  if @data !~~ Array || @data.shape[0] ~~ Whatever {
     with @dims[0] {
       @!dims := CArray[int32].new: @dims;
       $!rank  = @dims.elems;
@@ -59,11 +78,7 @@ submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_E
       $!rank  = 1;
     }
   }
-  # Create a plan. The FFTW_MEASURE flag destroys the input array; save its values.
-  my @savein := CArray[num64].new: @!in.list;
-  @!out      := CArray[num64].new: 0e0 xx @!in.elems;
-  $!plan      = fftw_plan_dft($!rank, @!dims, @!in, @!out, $!direction, $flag);
-  @!in       := CArray[num64].new: @savein.list;
+  self.plan: $flag;
 }
 
 submethod DESTROY

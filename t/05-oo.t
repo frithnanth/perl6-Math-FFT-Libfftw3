@@ -139,11 +139,55 @@ subtest {
   is-deeply @outr».round(10⁻¹²), [1.0+0i, 2.0+0i … 18.0+0i], 'inverse transform';
 }, 'Range of Int - 2D transform';
 subtest {
+  my @array = [1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15], [16, 17, 18];
+  throws-like
+    { Math::FFT::Libfftw3.new: data => @array },
+    X::Libfftw3, message => /Array ' ' of ' ' arrays/,
+    'fails if no dims present';
+  my Math::FFT::Libfftw3 $fft .= new: data => @array, dims => (6,3);
+  cmp-ok $fft.rank, '==', 2, 'rank of data vector/matrix';
+  cmp-ok $fft.dims[0], '==', 6, 'first dimension of vector/matrix';
+  cmp-ok $fft.dims[1], '==', 3, 'second dimension of vector/matrix';
+  is-deeply $fft.in.list,
+    (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0, 7e0, 0e0, 8e0, 0e0, 9e0, 0e0, 10e0, 0e0,
+     11e0, 0e0, 12e0, 0e0, 13e0, 0e0, 14e0, 0e0, 15e0, 0e0, 16e0, 0e0, 17e0, 0e0, 18e0, 0e0),
+    'data read correctly';
+  my @out;
+  lives-ok { @out = $fft.execute }, 'execute transform';
+  is-deeply @out».round(10⁻¹²),
+    [171e0 + 0e0i,
+      -9e0 + 5.196152422706632e0i,
+      -9e0 + -5.196152422706632e0i,
+     -27e0 + 46.76537180435968e0i,
+       0e0 + 0e0i,
+       0e0 + 0e0i,
+     -27e0 + 15.588457268119894e0i,
+       0e0 + 0e0i,
+       0e0 + 0e0i,
+     -27e0 + 0e0i,
+       0e0 + 0e0i,
+       0e0 + 0e0i,
+     -27e0 + -15.588457268119894e0i,
+       0e0 + 0e0i,
+       0e0 + 0e0i,
+     -27e0 + -46.76537180435968e0i,
+       0e0 + 0e0i,
+       0e0 + 0e0i]».round(10⁻¹²),
+    'direct transform';
+  my Math::FFT::Libfftw3 $fftr .= new: data => @out, dims => (6,3), direction => FFTW_BACKWARD;
+  my @outr = $fftr.execute;
+  is-deeply @outr».round(10⁻¹²), [1.0+0i, 2.0+0i … 18.0+0i], 'inverse transform';
+}, 'Array of arrays of Int - 2D transform';
+subtest {
   my @array[6,3] = (1, 2, 3; 4, 5, 6; 7, 8, 9; 10, 11, 12; 13, 14, 15; 16, 17, 18);
   my Math::FFT::Libfftw3 $fft .= new: data => @array;
   cmp-ok $fft.rank, '==', 2, 'rank of data vector/matrix';
   cmp-ok $fft.dims[0], '==', 6, 'first dimension of vector/matrix';
   cmp-ok $fft.dims[1], '==', 3, 'second dimension of vector/matrix';
+  is-deeply $fft.in.list,
+    (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0, 7e0, 0e0, 8e0, 0e0, 9e0, 0e0, 10e0, 0e0,
+     11e0, 0e0, 12e0, 0e0, 13e0, 0e0, 14e0, 0e0, 15e0, 0e0, 16e0, 0e0, 17e0, 0e0, 18e0, 0e0),
+    'data read correctly';
   my @out;
   lives-ok { @out = $fft.execute }, 'execute transform';
   is-deeply @out».round(10⁻¹²),
