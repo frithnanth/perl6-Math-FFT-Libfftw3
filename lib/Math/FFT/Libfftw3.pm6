@@ -24,15 +24,6 @@ has int32     @.dims;
 has int32     $!direction;
 has fftw_plan $!plan;
 
-method plan($flag --> Nil)
-{
-  # Create a plan. The FFTW_MEASURE flag destroys the input array; save its values.
-  my @savein := CArray[num64].new: @!in.list;
-  @!out      := CArray[num64].new: 0e0 xx @!in.elems;
-  $!plan      = fftw_plan_dft($!rank, @!dims, @!in, @!out, $!direction, $flag);
-  @!in       := CArray[num64].new: @savein.list;
-}
-
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 {
   # What kind of Positional?
@@ -85,6 +76,15 @@ submethod DESTROY
 {
   fftw_destroy_plan($!plan) with $!plan;
   fftw_cleanup;
+}
+
+method plan($flag --> Nil)
+{
+  # Create a plan. The FFTW_MEASURE flag destroys the input array; save its values.
+  my @savein := CArray[num64].new: @!in.list;
+  @!out      := CArray[num64].new: 0e0 xx @!in.elems;
+  $!plan      = fftw_plan_dft($!rank, @!dims, @!in, @!out, $!direction, $flag);
+  @!in       := CArray[num64].new: @savein.list;
 }
 
 method execute(--> Positional)
