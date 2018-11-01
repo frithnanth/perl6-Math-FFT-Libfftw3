@@ -21,7 +21,7 @@ has num64     @.in;
 has num64     @.out;
 has int32     $.rank;
 has int32     @.dims;
-has int32     $!direction;
+has int32     $.direction;
 has fftw_plan $!plan;
 
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
@@ -49,11 +49,7 @@ submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_E
       @!in := CArray[num64].new: @ndata.map(|*)».reals.List.flat;
     }
     when Int | Rat | Num {
-      my @in2 = 0 xx (@ndata.flat.elems * 2);
-      for @ndata.pairs -> $p {
-        @in2[$p.key * 2] = $p.value;
-      }
-      @!in := CArray[num64].new: @in2».Num.flat;
+      @!in := CArray[num64].new: (@ndata Z 0 xx @ndata.elems).flat».Num;
     }
     default {
       fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Int, Rat, Num or Complex';
