@@ -24,15 +24,15 @@ has int32     @.dims;
 has int32     $.direction;
 has fftw_plan $!plan;
 
-submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+multi method new(:@data!, :@dims?, :$direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 {
   # What kind of Positional?
   my @ndata;
+  my @ndims = @dims;
   if @data ~~ Array && @data.shape[0] ~~ Int {              # shaped array
     die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
       if $*PERL.compiler.version < v2018.09;
-    @!dims := CArray[int32].new: @data.shape;
-    $!rank  = @!dims.elems;
+    @ndims  = @data.shape;
     @ndata := @data.Array; # .Array flattens a shaped array since Rakudo 2018.09
   } elsif @data ~~ Array && @data[0] ~~ Array {             # array of arrays
     fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
@@ -43,13 +43,29 @@ submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_E
   } else {
     fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Not a Positional';
   }
+  self.bless(data => @ndata, direction => $direction, dims => @ndims, flag => $flag);
+}
+
+multi method new(:$data!, :$direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+{
+  if $data.^name eq 'Math::Matrix' {                        # Math::Matrix object
+    my @ndata := $data.list-rows.flat.list;
+    my @ndims := $data.size;
+    self.bless(data => @ndata, direction => $direction, dims => @ndims, flag => $flag);
+  } else {
+    fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. The only scalar data allowed is Math::Matrix.';
+  }
+}
+
+submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+{
   # What data type?
-  given @ndata[0] {
+  given @data[0] {
     when Complex {
-      @!in := CArray[num64].new: @ndata.map(|*)».reals.List.flat;
+      @!in := CArray[num64].new: @data.map(|*)».reals.List.flat;
     }
     when Int | Rat | Num {
-      @!in := CArray[num64].new: (@ndata Z 0 xx @ndata.elems).flat».Num;
+      @!in := CArray[num64].new: (@data Z 0 xx @data.elems).flat».Num;
     }
     default {
       fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Int, Rat, Num or Complex';
@@ -64,6 +80,9 @@ submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_E
       @!dims := CArray[int32].new: (@!in.elems / 2).Int;
       $!rank  = 1;
     }
+  } elsif @data ~~ Array && @data.shape[0] ~~ Int {
+    @!dims := CArray[int32].new: @dims;
+    $!rank  = @!dims.elems;
   }
   self.plan: $flag;
 }
