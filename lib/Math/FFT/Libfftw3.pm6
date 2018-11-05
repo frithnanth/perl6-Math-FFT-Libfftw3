@@ -221,7 +221,7 @@ This program prints
 
 because the C library's representation of the Complex type is just a couple of real numbers.
 
-B<Math::FFT::Libfftw3> represents complex number this way to ease the communication with the C library.
+B<Math::FFT::Libfftw3> represents complex numbers this way to ease the communication with the C library.
 If one needs a B<Complex> or B<Num> array, one has to convert it in some way.
 For example:
 
