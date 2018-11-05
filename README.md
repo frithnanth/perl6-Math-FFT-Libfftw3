@@ -51,9 +51,10 @@ Math::FFT::Libfftw3 provides an interface to libfftw3 and allows you to perform 
 ## Documentation
 
 #### new(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+#### new(:$data!, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 
-The constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr, ComplexStr).
-So it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
+The first constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr, ComplexStr);
+it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
 
 The only mandatory argument is **@data**.
 Multidimensional data are expressed in row-major order (see the [C Library Documentation](#clib))
@@ -65,6 +66,10 @@ The **$direction** parameter is used to specify a direct or backward transform; 
 
 The **$flag** parameter specifies the way the underlying library has to analyze the data in order to create a plan
 for the transform; it defaults to `FFTW_ESTIMATE` (see the C Library Documentation).
+
+The second constructor accepts a scalar: an object of type **Math::Matrix** (if that module is installed, otherwise
+it returns a **Failure**), a **$direction**, and a **$flag**; the meaning of the last two parameters is the same as
+in the other constructor.
 
 #### execute(--> Positional)
 
@@ -98,6 +103,18 @@ This program prints
 
 because the C library's representation of the Complex type is just a couple of real numbers.
 
+**Math::FFT::Libfftw3** represents complex number this way to ease the communication with the C library.
+If one needs a **Complex** or **Num** array, one has to convert it in some way.
+For example:
+
+```perl6
+
+my $fft = Math::FFT::Libfftw3.new: data => 1..6;
+say $fft.in.list;
+say $fft.in.list.map: -> $re,$im { Complex.new: $re, $im };
+say $fft.in.list[0,2 … *];
+
+```
 
 ## [C Library documentation](#clib)
 
@@ -139,18 +156,6 @@ installation, so it's not a substitute for a pure Perl 6 module.
 If you need a pure Perl 6 module, Math::FourierTransform works just fine.
 
 This module need Perl 6 ≥ 2018.09 in order to use shaped arrays.
-
-When using Math::Matrix, pass the object this way:
-
-```perl6
-use Math::Matrix;
-use Math::FFT::Libfftw3;
-
-my $matrix = Math::Matrix.new( [[1,2],[3,4]] );
-my $fft = Math::FFT::Libfftw3.new: data => $matrix.list-rows.flat, dims => (2, 2);
-```
-
-Note that in this case the **dims** parameter is mandatory, because Math::Matrix doesn't use shaped matrices yet.
 
 ## TODO
 

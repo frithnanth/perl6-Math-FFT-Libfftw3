@@ -1,6 +1,6 @@
 use v6;
 
-unit class Math::FFT::Libfftw3:ver<0.0.1>:auth<cpan:FRITH>;
+unit class Math::FFT::Libfftw3:ver<0.0.2>:auth<cpan:FRITH>;
 
 use NativeCall;
 use Math::FFT::Libfftw3::Raw;
@@ -167,9 +167,10 @@ put @outr».round(10⁻¹²);
 B<Math::FFT::Libfftw3> provides an OO interface to libfftw3 and allows you to perform Fast Fourier Transforms.
 
 =head2 new(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+=head2 new(:$data!, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 
-The constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr, ComplexStr).
-So it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
+The first constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr, ComplexStr);
+it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
 
 The only mandatory argument is B<@data>.
 Multidimensional data are expressed in row-major order (see L<C Library Documentation|#clib>) and the array B<@dims> must be
@@ -181,6 +182,10 @@ The B<$direction> parameter is used to specify a direct or backward transform; i
 
 The B<$flag> parameter specifies the way the underlying library has to analyze the data in order to create a plan
 for the transform; it defaults to FFTW_ESTIMATE (see L<#Documentation>).
+
+The second constructor accepts a scalar: an object of type B<Math::Matrix> (if that module is installed, otherwise
+it returns a B<Failure>), a B<$direction>, and a B<$flag>; the meaning of the last two parameters is the same as in
+the other constructor.
 
 =head2 execute(--> Positional)
 
@@ -215,6 +220,20 @@ This program prints
 =end code
 
 because the C library's representation of the Complex type is just a couple of real numbers.
+
+B<Math::FFT::Libfftw3> represents complex number this way to ease the communication with the C library.
+If one needs a B<Complex> or B<Num> array, one has to convert it in some way.
+For example:
+
+=begin code
+
+my $fft = Math::FFT::Libfftw3.new: data => 1..6;
+say $fft.in.list;
+say $fft.in.list.map: -> $re,$im { Complex.new: $re, $im };
+say $fft.in.list[0,2 … *];
+
+=end code
+
 
 =head1 L<C Library Documentation|#clib>
 
@@ -256,20 +275,6 @@ installation, so it's not a substitute for a pure Perl 6 module.
 If you need a pure Perl 6 module, Math::FourierTransform works just fine.
 
 This module need Perl 6 ≥ 2018.09 in order to use shaped arrays.
-
-When using Math::Matrix, pass the object this way:
-
-=begin code
-
-use Math::Matrix;
-use Math::FFT::Libfftw3;
-
-my $matrix = Math::Matrix.new( [[1,2],[3,4]] );
-my $fft = Math::FFT::Libfftw3.new: data => $matrix.list-rows.flat, dims => (2, 2);
-
-=end code
-
-Note that in this case the B<dims> parameter is mandatory, because Math::Matrix doesn't use shaped matrices yet.
 
 =head1 TODO
 
