@@ -71,50 +71,33 @@ The second constructor accepts a scalar: an object of type **Math::Matrix** (if 
 it returns a **Failure**), a **$direction**, and a **$flag**; the meaning of the last two parameters is the same as
 in the other constructor.
 
-#### execute(--> Positional)
+#### execute(:$output? = OUT-COMPLEX --> Positional)
 
-Executes the transform and returns the output array of values as a normalized row-major array of Complex.
+Executes the transform and returns the output array of values as a normalized row-major array.
+The parameter **$output** can be optionally used to specify how the array is to be returned:
+
+* OUT-COMPLEX
+* OUT-REIM
+* OUT-NUM
+
+The default (**OUT-COMPLEX**) is to return an array of Complex.
+**OUT-REIM** makes the **execute** method return the native representation of the data: an array of couples of
+real/imaginary values.
+**OUT-NUM** makes the **execute** method return just the real part of the complex values.
+
+#### in(:$output? = OUT-COMPLEX --> Positional)
+
+Returns the input array, same options as per the output array.
+
 
 #### Attributes
 
 Some of this class' attributes are readable:
 
-* @.in
 * @.out
 * $.rank
 * @.dims
 
-Since their data type is native, there is an additional passage to get the values of the arrays:
-
-```perl6
-
-my $fft = Math::FFT::Libfftw3.new: data => 1..6;
-say $fft.in.list;    # say $fft.in; doesn't work as one might expect
-
-```
-
-This program prints
-
-```perl6
-
-(1 0 2 0 3 0 4 0 5 0 6 0)
-
-```
-
-because the C library's representation of the Complex type is just a couple of real numbers.
-
-**Math::FFT::Libfftw3** represents complex numbers this way to ease the communication with the C library.
-If one needs a **Complex** or **Num** array, one has to convert it in some way.
-For example:
-
-```perl6
-
-my $fft = Math::FFT::Libfftw3.new: data => 1..6;
-say $fft.in.list;
-say $fft.in.list.map: -> $re,$im { Complex.new: $re, $im };
-say $fft.in.list[0,2 … *];
-
-```
 
 ## [C Library documentation](#clib)
 

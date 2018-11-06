@@ -15,8 +15,12 @@ throws-like
 subtest {
   my Math::FFT::Libfftw3 $fft1 .= new: data => 1..6;
   isa-ok $fft1, Math::FFT::Libfftw3, 'object type';
-  isa-ok $fft1.in, 'NativeCall::Types::CArray[num64]', 'CArray data type';
-  is-deeply $fft1.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'input array';
+  isa-ok $fft1.in, 'List', 'internal input array - Complex';
+  is-deeply $fft1.in, (1e0 + 0e0i, 2e0 + 0e0i, 3e0 + 0e0i, 4e0 + 0e0i, 5e0 + 0e0i, 6e0 + 0e0i),
+    'input array - Complex output';
+  is-deeply $fft1.in(output => OUT-REIM), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0),
+    'input array - Re Im output';
+  is-deeply $fft1.in(output => OUT-NUM), (1e0, 2e0, 3e0, 4e0, 5e0, 6e0), 'input array - Num output';
   cmp-ok $fft1.rank,    '==', 1, 'rank of data vector/matrix';
   cmp-ok $fft1.dims[0], '==', 6, 'dimension of vector/matrix';
   my @out;
@@ -28,10 +32,28 @@ subtest {
      -3e0 + 0e0i,
      -3e0 + -1.7320508075688772e0i,
      -3e0 + -5.196152422706632e0i]».round(10⁻¹²),
-    'direct transform';
+    'direct transform - Complex output';
+  my @outreim = $fft1.execute: output => OUT-REIM;
+  is-deeply @outreim».round(10⁻¹²),
+    [21e0, 0e0,
+     -3e0, 5.196152422706632e0,
+     -3e0, 1.7320508075688772e0,
+     -3e0, 0e0,
+     -3e0, -1.7320508075688772e0,
+     -3e0, -5.196152422706632e0]».round(10⁻¹²),
+    'direct transform - Re Im output';
+  my @outnum = $fft1.execute: output => OUT-NUM;
+  is-deeply @outnum».round(10⁻¹²),
+    [21e0, -3e0, -3e0, -3e0, -3e0, -3e0,]».round(10⁻¹²),
+    'direct transform - Num output';
   my Math::FFT::Libfftw3 $fftr .= new: data => @out, direction => FFTW_BACKWARD;
   my @outr = $fftr.execute;
-  is-deeply @outr».round(10⁻¹²)».Num, [1e0, 2e0, 3e0, 4e0, 5e0, 6e0], 'inverse transform';
+  is-deeply @outr».round(10⁻¹²)».Num, [1e0, 2e0, 3e0, 4e0, 5e0, 6e0], 'inverse transform - Complex output';
+  my @outrreim = $fftr.execute: output => OUT-REIM;
+  is-deeply @outrreim».round(10⁻¹²), [1.0, 0.0, 2.0, 0.0, 3.0, 0.0, 4.0, 0.0, 5.0, 0.0, 6.0, 0.0],
+      'inverse transform - Re Im output';
+  my @outrnum = $fftr.execute: output => OUT-NUM;
+  is-deeply @outrnum».round(10⁻¹²), [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], 'inverse transform - Num output';
   my Math::FFT::Libfftw3 $fft2 .= new: data => 1..6, flag => FFTW_MEASURE;
   my @out2 = $fft1.execute;
   is-deeply @out2».round(10⁻¹²),
@@ -46,75 +68,75 @@ subtest {
 subtest {
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (1, 2 … 6);
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Sequence of Int';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Sequence of Int';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (1..6).list;
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of Int';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of Int';
   }
   {
     my @data = 1..6;
     my Math::FFT::Libfftw3 $fft .= new: data => @data;
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Array of Int';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Array of Int';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => 1/1..6/1;
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Range of Rat';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Range of Rat';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (1/1, 2/1 … 6/1);
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Sequence of Rat';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Sequence of Rat';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (1/1, 2/1, 3/1, 4/1, 5/1, 6/1);
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of Rat';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of Rat';
   }
   {
     my @data = 1/1, 2/1, 3/1, 4/1, 5/1, 6/1;
     my Math::FFT::Libfftw3 $fft .= new: data => @data;
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Array of Rat';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Array of Rat';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => 1e0..6e0;
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Range of Num';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Range of Num';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (1e0, 2e0 … 6e0);
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Sequence of Num';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Sequence of Num';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (1e0..6e0).list;
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of Num';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of Num';
   }
   {
     my @data = 1e0..6e0;
     my Math::FFT::Libfftw3 $fft .= new: data => @data;
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Array of Num';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Array of Num';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (1..6)».Complex;
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of Complex';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of Complex';
   }
   {
     my @data = (1..6)».Complex;
     my Math::FFT::Libfftw3 $fft .= new: data => @data;
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Array of Complex';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'Array of Complex';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (<1>, <2>, <3>, <4>, <5>, <6>);
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of IntStr';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of IntStr';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (<1/1>, <2/1>, <3/1>, <4/1>, <5/1>, <6/1>);
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of RatStr';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of RatStr';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (<1e0>, <2e0>, <3e0>, <4e0>, <5e0>, <6e0>);
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of NumStr';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of NumStr';
   }
   {
     my Math::FFT::Libfftw3 $fft .= new: data => (<1+0i>, <2+0i>, <3+0i>, <4+0i>, <5+0i>, <6+0i>);
-    is-deeply $fft.in.list, (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of ComplexStr';
+    is-deeply $fft.in(:output(OUT-REIM)), (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0), 'List of ComplexStr';
   }
 }, 'Other data types - 1D transform';
 subtest {
@@ -158,7 +180,7 @@ subtest {
   cmp-ok $fft.rank,    '==', 2, 'rank of data vector/matrix';
   cmp-ok $fft.dims[0], '==', 6, 'first dimension of vector/matrix';
   cmp-ok $fft.dims[1], '==', 3, 'second dimension of vector/matrix';
-  is-deeply $fft.in.list,
+  is-deeply $fft.in(:output(OUT-REIM)),
     (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0, 7e0, 0e0, 8e0, 0e0, 9e0, 0e0, 10e0, 0e0,
      11e0, 0e0, 12e0, 0e0, 13e0, 0e0, 14e0, 0e0, 15e0, 0e0, 16e0, 0e0, 17e0, 0e0, 18e0, 0e0),
     'data read correctly';
@@ -194,7 +216,7 @@ subtest {
   cmp-ok $fft.rank,    '==', 2, 'rank of data vector/matrix';
   cmp-ok $fft.dims[0], '==', 6, 'first dimension of vector/matrix';
   cmp-ok $fft.dims[1], '==', 3, 'second dimension of vector/matrix';
-  is-deeply $fft.in.list,
+  is-deeply $fft.in(:output(OUT-REIM)),
     (1e0, 0e0, 2e0, 0e0, 3e0, 0e0, 4e0, 0e0, 5e0, 0e0, 6e0, 0e0, 7e0, 0e0, 8e0, 0e0, 9e0, 0e0, 10e0, 0e0,
      11e0, 0e0, 12e0, 0e0, 13e0, 0e0, 14e0, 0e0, 15e0, 0e0, 16e0, 0e0, 17e0, 0e0, 18e0, 0e0),
     'data read correctly';

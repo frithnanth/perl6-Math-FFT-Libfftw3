@@ -10,6 +10,10 @@ constant TYPE-ERROR          is export = 1;
 constant DIRECTION-ERROR     is export = 2;
 constant NO-DIMS             is export = 3;
 
+constant OUT-COMPLEX         is export = 0;
+constant OUT-REIM            is export = 1;
+constant OUT-NUM             is export = 2;
+
 class X::Libfftw3 is Exception
 {
   has Int $.errno;
@@ -17,7 +21,7 @@ class X::Libfftw3 is Exception
   method message { "Error {$!errno}: $!error" }
 }
 
-has num64     @.in;
+has num64     @!in;
 has num64     @.out;
 has int32     $.rank;
 has int32     @.dims;
@@ -102,19 +106,54 @@ method plan($flag --> Nil)
   @!in       := CArray[num64].new: @savein.list;
 }
 
-method execute(--> Positional)
+method execute(:$output? = OUT-COMPLEX --> Positional)
 {
   fftw_execute($!plan);
   given $!direction {
     when FFTW_FORWARD {
-      return @!out.map(-> $r, $i { Complex.new($r, $i) }).list;
+      given $output {
+        when OUT-COMPLEX {
+          return @!out.map(-> $r, $i { Complex.new($r, $i) }).list;
+        }
+        when OUT-REIM {
+          return @!out.list;
+        }
+        when OUT-NUM {
+          return @!out.list[0,2 … *];
+        }
+      }
     }
     when FFTW_BACKWARD {
       # backward trasforms are not normalized
-      return (@!out.list »/» [*] @!dims.list).map(-> $r, $i { Complex.new($r, $i) }).list;
+      given $output {
+        when OUT-COMPLEX {
+          return (@!out.list »/» [*] @!dims.list).map(-> $r, $i { Complex.new($r, $i) }).list;
+        }
+        when OUT-REIM {
+          return @!out.list »/» [*] @!dims.list;
+        }
+        when OUT-NUM {
+          return (@!out.list »/» [*] @!dims.list)[0,2 … *];
+        }
+      }
     }
     default {
       fail X::Libfftw3.new: errno => DIRECTION-ERROR, error => 'Wrong direction. Try FFTW_FORWARD or FFTW_BACKWARD';
+    }
+  }
+}
+
+method in(:$output? = OUT-COMPLEX --> Positional)
+{
+  given $output {
+    when OUT-COMPLEX {
+      return @!in.map(-> $r, $i { Complex.new($r, $i) }).list;
+    }
+    when OUT-REIM {
+      return @!in.list;
+    }
+    when OUT-NUM {
+      return @!in.list[0,2 … *];
     }
   }
 }
@@ -187,52 +226,31 @@ The second constructor accepts a scalar: an object of type B<Math::Matrix> (if t
 it returns a B<Failure>), a B<$direction>, and a B<$flag>; the meaning of the last two parameters is the same as in
 the other constructor.
 
-=head2 execute(--> Positional)
+=head2 execute(:$output? = OUT-COMPLEX --> Positional)
 
-Executes the transform and returns the output array of values as a normalized row-major array of Complex.
+Executes the transform and returns the output array of values as a normalized row-major array.
+The parameter B<$output> can be optionally used to specify how the array is to be returned:
+
+=item OUT-COMPLEX
+=item OUT-REIM
+=item OUT-NUM
+
+The default (B<OUT-COMPLEX>) is to return an array of Complex.
+B<OUT-REIM> makes the B<execute> method return the native representation of the data: an array of couples of
+real/imaginary values.
+B<OUT-NUM> makes the B<execute> method return just the real part of the complex values.
+
+=head2 in(:$output? = OUT-COMPLEX --> Positional)
+
+Returns the input array, same options as per the output array.
 
 =head2 Attributes
 
 Some of this class' attributes are readable:
 
-=item @.in
 =item @.out
 =item $.rank
 =item @.dims
-
-Since their data type is native, there is an additional passage to get the values of the arrays:
-
-=begin code
-
-use Math::FFT::Libfftw3;
-
-my $fft = Math::FFT::Libfftw3.new: data => 1..6;
-say $fft.in.list;    # say $fft.in; doesn't work as one might expect
-
-=end code
-
-This program prints
-
-=begin code
-
-(1 0 2 0 3 0 4 0 5 0 6 0)
-
-=end code
-
-because the C library's representation of the Complex type is just a couple of real numbers.
-
-B<Math::FFT::Libfftw3> represents complex numbers this way to ease the communication with the C library.
-If one needs a B<Complex> or B<Num> array, one has to convert it in some way.
-For example:
-
-=begin code
-
-my $fft = Math::FFT::Libfftw3.new: data => 1..6;
-say $fft.in.list;
-say $fft.in.list.map: -> $re,$im { Complex.new: $re, $im };
-say $fft.in.list[0,2 … *];
-
-=end code
 
 
 =head1 L<C Library Documentation|#clib>
