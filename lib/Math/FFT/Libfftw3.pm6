@@ -1,6 +1,6 @@
 use v6;
 
-unit class Math::FFT::Libfftw3:ver<0.0.2>:auth<cpan:FRITH>;
+unit class Math::FFT::Libfftw3:ver<0.0.3>:auth<cpan:FRITH>;
 
 use NativeCall;
 use Math::FFT::Libfftw3::Raw;
@@ -9,6 +9,7 @@ use Math::FFT::Libfftw3::Constants;
 constant TYPE-ERROR          is export = 1;
 constant DIRECTION-ERROR     is export = 2;
 constant NO-DIMS             is export = 3;
+constant FILE-ERROR          is export = 4;
 
 constant OUT-COMPLEX         is export = 0;
 constant OUT-REIM            is export = 1;
@@ -50,15 +51,11 @@ multi method new(:@data!, :@dims?, :$direction? = FFTW_FORWARD, :$flag? = FFTW_E
   self.bless(data => @ndata, direction => $direction, dims => @ndims, flag => $flag);
 }
 
-multi method new(:$data!, :$direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+multi method new(:$data! where .^name eq 'Math::Matrix', :$direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 {
-  if $data.^name eq 'Math::Matrix' {                        # Math::Matrix object
-    my @ndata := $data.list-rows.flat.list;
-    my @ndims := $data.size;
-    self.bless(data => @ndata, direction => $direction, dims => @ndims, flag => $flag);
-  } else {
-    fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. The only scalar data allowed is Math::Matrix.';
-  }
+  my @ndata := $data.list-rows.flat.list;
+  my @ndims := $data.size;
+  self.bless(data => @ndata, direction => $direction, dims => @ndims, flag => $flag);
 }
 
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
@@ -99,7 +96,7 @@ submethod DESTROY
 
 method plan($flag --> Nil)
 {
-  # Create a plan. The FFTW_MEASURE flag destroys the input array; save its values.
+  # Create a plan. The FFTW_MEASURE flag destroys the input array; save it.
   my @savein := CArray[num64].new: @!in.list;
   @!out      := CArray[num64].new: 0e0 xx @!in.elems;
   $!plan      = fftw_plan_dft($!rank, @!dims, @!in, @!out, $!direction, $flag);
@@ -156,6 +153,18 @@ method in(:$output? = OUT-COMPLEX --> Positional)
       return @!in.list[0,2 … *];
     }
   }
+}
+
+method plan-save(Str $filename --> True)
+{
+  my $res = fftw_export_wisdom_to_filename($filename);
+  fail X::Libfftw3.new: errno => FILE-ERROR, error => "Can't create file $filename" if $res == 0;
+}
+
+method plan-load(Str $filename --> True)
+{
+  my $res = fftw_import_wisdom_from_filename($filename);
+  fail X::Libfftw3.new: errno => FILE-ERROR, error => "Can't read file $filename" if $res == 0;
 }
 
 =begin pod
@@ -236,9 +245,9 @@ The parameter B<$output> can be optionally used to specify how the array is to b
 =item OUT-NUM
 
 The default (B<OUT-COMPLEX>) is to return an array of Complex.
-B<OUT-REIM> makes the B<execute> method return the native representation of the data: an array of couples of
+B<OUT-REIM> makes the C<execute> method return the native representation of the data: an array of couples of
 real/imaginary values.
-B<OUT-NUM> makes the B<execute> method return just the real part of the complex values.
+B<OUT-NUM> makes the C<execute> method return just the real part of the complex values.
 
 =head2 in(:$output? = OUT-COMPLEX --> Positional)
 
@@ -251,6 +260,19 @@ Some of this class' attributes are readable:
 =item @.out
 =item $.rank
 =item @.dims
+=item $.direction
+
+=head2 Wisdom interface
+
+This interface allows to save and load a plan associated to a transform (There are some caveats. See L<#Documentation>).
+
+=head3 plan-save(Str $filename --> True)
+
+Saves the plan into a file. Returns B<True> if successful and a B<Failure> object otherwise.
+
+=head3 plan-load(Str $filename --> True)
+
+Loads the plan from a file. Returns B<True> if successful and a B<Failure> object otherwise.
 
 
 =head1 L<C Library Documentation|#clib>
@@ -292,7 +314,8 @@ Math::FFT::Libfftw3 relies on a C library which might not be present in one's
 installation, so it's not a substitute for a pure Perl 6 module.
 If you need a pure Perl 6 module, Math::FourierTransform works just fine.
 
-This module need Perl 6 ≥ 2018.09 in order to use shaped arrays.
+This module needs Perl 6 ≥ 2018.09 only if one wants to use shaped arrays as input data. An attempt to feed a shaped
+array to the C<new> method using C«$*PERL.compiler.version < v2018.09» results in an exception.
 
 =head1 TODO
 

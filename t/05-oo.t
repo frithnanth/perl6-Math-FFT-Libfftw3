@@ -278,10 +278,37 @@ subtest {
     my Math::FFT::Libfftw3 $fftr .= new: data => @out, dims => (6,3), direction => FFTW_BACKWARD;
     my @outr = $fftr.execute;
     is-deeply @outr».round(10⁻¹²), [1.0+0i, 2.0+0i … 18.0+0i], 'inverse transform';
+    throws-like
+      { my $now = DateTime.new(now); Math::FFT::Libfftw3.new: data => $now },
+      X::TypeCheck::Binding::Parameter,
+      message => /Type ' ' check ' ' failed/,
+      'fails with wrong data';
   } else {
     plan 1;
     skip-rest 'Math::Matrix not found';
   }
 }, 'Math::Matrix';
+subtest {
+  my $fileout;
+  ENTER {
+    my $path = $*PROGRAM-NAME.subst(/ <-[/]>+$/, '');
+    $fileout = $path ~ 'wisdom.dat';
+    $fileout.IO.unlink if $fileout.IO.e;
+  }
+  LEAVE { $fileout.IO.unlink if $fileout.IO.e }
+  my Math::FFT::Libfftw3 $fft1 .= new: data => 1..6, flag => FFTW_MEASURE;
+  throws-like
+    { $fft1.plan-save("nonexistent/$fileout") },
+    X::Libfftw3, message => /Can\'t ' ' create ' ' file/,
+    "fails if can't create output file";
+  lives-ok { $fft1.plan-save($fileout) }, 'save plan to file';
+  throws-like
+    { $fft1.plan-load("nonexistent/$fileout") },
+    X::Libfftw3, message => /Can\'t ' ' read ' ' file/,
+    "fails if can't read input file";
+  my Math::FFT::Libfftw3 $fft2 .= new: data => 1..6;
+  lives-ok { $fft2.plan-load($fileout) }, 'read plan from file';
+  lives-ok { $fft2.execute }, 'execute transform on saved plan';
+}, 'Wisdom interface';
 
 done-testing;

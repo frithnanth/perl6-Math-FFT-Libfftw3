@@ -81,9 +81,9 @@ The parameter **$output** can be optionally used to specify how the array is to 
 * OUT-NUM
 
 The default (**OUT-COMPLEX**) is to return an array of Complex.
-**OUT-REIM** makes the **execute** method return the native representation of the data: an array of couples of
+**OUT-REIM** makes the `execute` method return the native representation of the data: an array of couples of
 real/imaginary values.
-**OUT-NUM** makes the **execute** method return just the real part of the complex values.
+**OUT-NUM** makes the `execute` method return just the real part of the complex values.
 
 #### in(:$output? = OUT-COMPLEX --> Positional)
 
@@ -97,6 +97,20 @@ Some of this class' attributes are readable:
 * @.out
 * $.rank
 * @.dims
+* $.direction
+
+#### Wisdom interface
+
+This interface allows to save and load a plan associated to a transform (There are some caveats.
+See [C Library Documentation](#clib)).
+
+##### plan-save(Str $filename --> True)
+
+Saves the plan into a file. Returns **True** if successful and a **Failure** object otherwise.
+
+##### plan-load(Str $filename --> True)
+
+Loads the plan From a file. Returns **True** if successful and a **Failure** object otherwise.
 
 
 ## [C Library documentation](#clib)
@@ -138,7 +152,8 @@ Math::FFT::Libfftw3 relies on a C library which might not be present in one's
 installation, so it's not a substitute for a pure Perl 6 module.
 If you need a pure Perl 6 module, Math::FourierTransform works just fine.
 
-This module need Perl 6 ≥ 2018.09 in order to use shaped arrays.
+This module needs Perl 6 ≥ 2018.09 only if one wants to use shaped arrays as input data. An attempt to feed a shaped
+array to the `new` method using `$*PERL.compiler.version < v2018.09` results in an exception.
 
 ## TODO
 
