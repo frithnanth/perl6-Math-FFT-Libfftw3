@@ -169,7 +169,6 @@ There are other possibilities: r2c and c2r transforms, and r2r transforms:
 Besides:
 
 * There's a *guru* interface to apply the same plan to different data.
-* There's a *wisdom* interface to save and load the plan.
 * There's a *multi-threaded* interface, which supports parallel one- and multi-dimensional transforms.
 * There's a *distributed-memory* interface, for parallel systems supporting the MPI message-passing interface.
 

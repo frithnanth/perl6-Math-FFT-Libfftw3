@@ -331,7 +331,6 @@ There are other possibilities: r2c and c2r transforms, and r2r transforms:
 Besides:
 
 =item There's a I<guru> interface to apply the same plan to different data.
-=item There's a I<wisdom> interface to save and load the plan.
 =item There's a I<multi-threaded> interface, which supports parallel one- and multi-dimensional transforms.
 =item There's a I<distributed-memory> interface, for parallel systems supporting the MPI message-passing interface.
 
