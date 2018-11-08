@@ -29,28 +29,39 @@ has int32     @.dims;
 has int32     $.direction;
 has fftw_plan $!plan;
 
-multi method new(:@data!, :@dims?, :$direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+# Shaped Array
+multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ Int,
+                 :@dims?,
+                 :$direction? = FFTW_FORWARD,
+                 :$flag? = FFTW_ESTIMATE)
 {
-  # What kind of Positional?
-  my @ndata;
-  my @ndims = @dims;
-  if @data ~~ Array && @data.shape[0] ~~ Int {              # shaped array
-    die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
-      if $*PERL.compiler.version < v2018.09;
-    @ndims  = @data.shape;
-    @ndata := @data.Array; # .Array flattens a shaped array since Rakudo 2018.09
-  } elsif @data ~~ Array && @data[0] ~~ Array {             # array of arrays
-    fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
-      if @dims.elems == 0;
-    @ndata  = do gather @data.deepmap(*.take);
-  } elsif @data !~~ Array || @data.shape[0] ~~ Whatever {   # plain array or Positional
-    @ndata := @data;
-  } else {
-    fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Not a Positional';
-  }
-  self.bless(data => @ndata, direction => $direction, dims => @ndims, flag => $flag);
+  # .Array flattens a shaped array since Rakudo 2018.09
+  die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
+    if $*PERL.compiler.version < v2018.09;
+  self.bless(data => @data.Array, direction => $direction, dims => @data.shape, flag => $flag);
 }
 
+# Array of arrays
+multi method new(:@data! where @data ~~ Array && @data[0] ~~ Array,
+                 :@dims?,
+                 :$direction? = FFTW_FORWARD,
+                 :$flag? = FFTW_ESTIMATE)
+{
+  fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
+    if @dims.elems == 0;
+  self.bless(data => do { gather @data.deepmap(*.take) }, direction => $direction, dims => @dims, flag => $flag);
+}
+
+# Plain array or Positional
+multi method new(:@data! where @data !~~ Array || @data.shape[0] ~~ Whatever,
+                 :@dims?,
+                 :$direction? = FFTW_FORWARD,
+                 :$flag? = FFTW_ESTIMATE)
+{
+  self.bless(data => @data, direction => $direction, dims => @dims, flag => $flag);
+}
+
+# Math::Matrix object
 multi method new(:$data! where .^name eq 'Math::Matrix', :$direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 {
   my @ndata := $data.list-rows.flat.list;
@@ -60,7 +71,7 @@ multi method new(:$data! where .^name eq 'Math::Matrix', :$direction? = FFTW_FOR
 
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 {
-  # What data type?
+  # What kind of data type?
   given @data[0] {
     when Complex {
       @!in := CArray[num64].new: @data.map(|*)».reals.List.flat;
@@ -121,16 +132,16 @@ method execute(:$output? = OUT-COMPLEX --> Positional)
       }
     }
     when FFTW_BACKWARD {
-      # backward trasforms are not normalized
+      my @out := @!out.list »/» [*] @!dims.list; # backward trasforms are not normalized
       given $output {
         when OUT-COMPLEX {
-          return (@!out.list »/» [*] @!dims.list).map(-> $r, $i { Complex.new($r, $i) }).list;
+          return @out.map(-> $r, $i { Complex.new($r, $i) }).list;
         }
         when OUT-REIM {
-          return @!out.list »/» [*] @!dims.list;
+          return @out;
         }
         when OUT-NUM {
-          return (@!out.list »/» [*] @!dims.list)[0,2 … *];
+          return @out[0,2 … *];
         }
       }
     }
@@ -157,14 +168,14 @@ method in(:$output? = OUT-COMPLEX --> Positional)
 
 method plan-save(Str $filename --> True)
 {
-  my $res = fftw_export_wisdom_to_filename($filename);
-  fail X::Libfftw3.new: errno => FILE-ERROR, error => "Can't create file $filename" if $res == 0;
+  fftw_export_wisdom_to_filename($filename) ||
+    fail X::Libfftw3.new: errno => FILE-ERROR, error => "Can't create file $filename";
 }
 
 method plan-load(Str $filename --> True)
 {
-  my $res = fftw_import_wisdom_from_filename($filename);
-  fail X::Libfftw3.new: errno => FILE-ERROR, error => "Can't read file $filename" if $res == 0;
+  fftw_import_wisdom_from_filename($filename) ||
+    fail X::Libfftw3.new: errno => FILE-ERROR, error => "Can't read file $filename";
 }
 
 =begin pod
