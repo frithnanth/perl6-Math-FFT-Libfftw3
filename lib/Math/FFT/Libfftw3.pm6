@@ -64,9 +64,7 @@ multi method new(:@data! where @data !~~ Array || @data.shape[0] ~~ Whatever,
 # Math::Matrix object
 multi method new(:$data! where .^name eq 'Math::Matrix', :$direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
 {
-  my @ndata := $data.list-rows.flat.list;
-  my @ndims := $data.size;
-  self.bless(data => @ndata, direction => $direction, dims => @ndims, flag => $flag);
+  self.bless(data => $data.list-rows.flat.list, direction => $direction, dims => $data.size, flag => $flag);
 }
 
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
