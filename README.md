@@ -50,8 +50,8 @@ Math::FFT::Libfftw3 provides an interface to libfftw3 and allows you to perform 
 
 ## Documentation
 
-#### new(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
-#### new(:$data!, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+#### new(:@data!, :@dims?, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
+#### new(:$data!, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
 
 The first constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr, ComplexStr);
 it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
@@ -71,7 +71,7 @@ The second constructor accepts a scalar: an object of type **Math::Matrix** (if 
 it returns a **Failure**), a **$direction**, and a **$flag**; the meaning of the last two parameters is the same as
 in the other constructor.
 
-#### execute(:$output? = OUT-COMPLEX --> Positional)
+#### execute(Int :$output? = OUT-COMPLEX --> Positional)
 
 Executes the transform and returns the output array of values as a normalized row-major array.
 The parameter **$output** can be optionally used to specify how the array is to be returned:
@@ -85,7 +85,7 @@ The default (**OUT-COMPLEX**) is to return an array of Complex.
 real/imaginary values.
 **OUT-NUM** makes the `execute` method return just the real part of the complex values.
 
-#### in(:$output? = OUT-COMPLEX --> Positional)
+#### in(Int :$output? = OUT-COMPLEX --> Positional)
 
 Returns the input array, same options as per the output array.
 

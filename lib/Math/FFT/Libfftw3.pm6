@@ -32,8 +32,8 @@ has fftw_plan $!plan;
 # Shaped Array
 multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ Int,
                  :@dims?,
-                 :$direction? = FFTW_FORWARD,
-                 :$flag? = FFTW_ESTIMATE)
+                 Int :$direction? = FFTW_FORWARD,
+                 Int :$flag? = FFTW_ESTIMATE)
 {
   # .Array flattens a shaped array since Rakudo 2018.09
   die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
@@ -44,8 +44,8 @@ multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ Int,
 # Array of arrays
 multi method new(:@data! where @data ~~ Array && @data[0] ~~ Array,
                  :@dims?,
-                 :$direction? = FFTW_FORWARD,
-                 :$flag? = FFTW_ESTIMATE)
+                 Int :$direction? = FFTW_FORWARD,
+                 Int :$flag? = FFTW_ESTIMATE)
 {
   fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
     if @dims.elems == 0;
@@ -55,19 +55,21 @@ multi method new(:@data! where @data ~~ Array && @data[0] ~~ Array,
 # Plain array or Positional
 multi method new(:@data! where @data !~~ Array || @data.shape[0] ~~ Whatever,
                  :@dims?,
-                 :$direction? = FFTW_FORWARD,
-                 :$flag? = FFTW_ESTIMATE)
+                 Int :$direction? = FFTW_FORWARD,
+                 Int :$flag? = FFTW_ESTIMATE)
 {
   self.bless(data => @data, direction => $direction, dims => @dims, flag => $flag);
 }
 
 # Math::Matrix object
-multi method new(:$data! where .^name eq 'Math::Matrix', :$direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+multi method new(:$data! where .^name eq 'Math::Matrix',
+                 Int :$direction? = FFTW_FORWARD,
+                 Int :$flag? = FFTW_ESTIMATE)
 {
   self.bless(data => $data.list-rows.flat.list, direction => $direction, dims => $data.size, flag => $flag);
 }
 
-submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
 {
   # What kind of data type?
   given @data[0] {
@@ -103,7 +105,7 @@ submethod DESTROY
   fftw_cleanup;
 }
 
-method plan($flag --> Nil)
+method plan(Int $flag --> Nil)
 {
   # Create a plan. The FFTW_MEASURE flag destroys the input array; save it.
   my @savein := CArray[num64].new: @!in.list;
@@ -112,7 +114,7 @@ method plan($flag --> Nil)
   @!in       := CArray[num64].new: @savein.list;
 }
 
-method execute(:$output? = OUT-COMPLEX --> Positional)
+method execute(Int :$output? = OUT-COMPLEX --> Positional)
 {
   fftw_execute($!plan);
   given $!direction {
@@ -149,7 +151,7 @@ method execute(:$output? = OUT-COMPLEX --> Positional)
   }
 }
 
-method in(:$output? = OUT-COMPLEX --> Positional)
+method in(Int :$output? = OUT-COMPLEX --> Positional)
 {
   given $output {
     when OUT-COMPLEX {
@@ -223,8 +225,8 @@ put @outr».round(10⁻¹²);
 
 B<Math::FFT::Libfftw3> provides an OO interface to libfftw3 and allows you to perform Fast Fourier Transforms.
 
-=head2 new(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
-=head2 new(:$data!, :$!direction? = FFTW_FORWARD, :$flag? = FFTW_ESTIMATE)
+=head2 new(:@data!, :@dims?, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
+=head2 new(:$data!, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
 
 The first constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr, ComplexStr);
 it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
@@ -244,7 +246,7 @@ The second constructor accepts a scalar: an object of type B<Math::Matrix> (if t
 it returns a B<Failure>), a B<$direction>, and a B<$flag>; the meaning of the last two parameters is the same as in
 the other constructor.
 
-=head2 execute(:$output? = OUT-COMPLEX --> Positional)
+=head2 execute(Int :$output? = OUT-COMPLEX --> Positional)
 
 Executes the transform and returns the output array of values as a normalized row-major array.
 The parameter B<$output> can be optionally used to specify how the array is to be returned:
@@ -258,7 +260,7 @@ B<OUT-REIM> makes the C<execute> method return the native representation of the 
 real/imaginary values.
 B<OUT-NUM> makes the C<execute> method return just the real part of the complex values.
 
-=head2 in(:$output? = OUT-COMPLEX --> Positional)
+=head2 in(Int :$output? = OUT-COMPLEX --> Positional)
 
 Returns the input array, same options as per the output array.
 
