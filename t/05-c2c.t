@@ -174,7 +174,7 @@ subtest {
   my @array = [1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15], [16, 17, 18];
   throws-like
     { Math::FFT::Libfftw3::C2C.new: data => @array },
-    X::Libfftw3::C2C, message => /Array ' ' of ' ' arrays/,
+    X::Libfftw3, message => /Array ' ' of ' ' arrays/,
     'fails if no dims present';
   my Math::FFT::Libfftw3::C2C $fft .= new: data => @array, dims => (6,3);
   cmp-ok $fft.rank,    '==', 2, 'rank of data vector/matrix';
@@ -299,12 +299,12 @@ subtest {
   my Math::FFT::Libfftw3::C2C $fft1 .= new: data => 1..6, flag => FFTW_MEASURE;
   throws-like
     { $fft1.plan-save("nonexistent/$fileout") },
-    X::Libfftw3::C2C, message => /Can\'t ' ' create ' ' file/,
+    X::Libfftw3, message => /Can\'t ' ' create ' ' file/,
     "fails if can't create output file";
   lives-ok { $fft1.plan-save($fileout) }, 'save plan to file';
   throws-like
     { $fft1.plan-load("nonexistent/$fileout") },
-    X::Libfftw3::C2C, message => /Can\'t ' ' read ' ' file/,
+    X::Libfftw3, message => /Can\'t ' ' read ' ' file/,
     "fails if can't read input file";
   my Math::FFT::Libfftw3::C2C $fft2 .= new: data => 1..6;
   lives-ok { $fft2.plan-load($fileout) }, 'read plan from file';

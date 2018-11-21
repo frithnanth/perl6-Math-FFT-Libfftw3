@@ -2,14 +2,16 @@
   "perl" : "6.c",
   "tags" : [ "math", "fft", "nativecall" ],
   "name" : "Math::FFT::Libfftw3",
-  "version" : "0.0.3",
-  "api" : "1",
+  "version" : "0.1.0",
+  "api" : "2",
   "description" : "Interface to libfftw3",
   "test-depends" : [ "Test" ],
   "provides" : {
+    "Math::FFT::Libfftw3::C2C" : "lib/Math/FFT/Libfftw3/C2C.pm6",
+    "Math::FFT::Libfftw3::Common" : "lib/Math/FFT/Libfftw3/Common.pm6",
     "Math::FFT::Libfftw3::Constants" : "lib/Math/FFT/Libfftw3/Constants.pm6",
-    "Math::FFT::Libfftw3::Raw" : "lib/Math/FFT/Libfftw3/Raw.pm6",
-    "Math::FFT::Libfftw3" : "lib/Math/FFT/Libfftw3.pm6"
+    "Math::FFT::Libfftw3::Exception" : "lib/Math/FFT/Libfftw3/Exception.pm6",
+    "Math::FFT::Libfftw3::Raw" : "lib/Math/FFT/Libfftw3/Raw.pm6"
   },
   "authors" : [ "Fernando Santagata" ],
   "license": "Artistic-2.0",

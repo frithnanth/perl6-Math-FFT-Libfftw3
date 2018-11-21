@@ -1,6 +1,6 @@
 use v6;
 
-unit module Math::FFT::Libfftw3::Constants:ver<0.0.1>:auth<cpan:FRITH>;
+unit module Math::FFT::Libfftw3::Constants:ver<0.1.0>:auth<cpan:FRITH>;
 
 constant FFTW_FORWARD         is export = -1;
 constant FFTW_BACKWARD        is export =  1;
@@ -18,3 +18,12 @@ constant FFTW_WISDOM_ONLY     is export =  1 +< 21;
 enum fftw_r2r_kind is export <FFTW_R2HC FFTW_HC2R FFTW_DHT
                               FFTW_REDFT00 FFTW_REDFT01 FFTW_REDFT10 FFTW_REDFT11
                               FFTW_RODFT00 FFTW_RODFT01 FFTW_RODFT10 FFTW_RODFT11>;
+
+constant TYPE-ERROR          is export = 1;
+constant DIRECTION-ERROR     is export = 2;
+constant NO-DIMS             is export = 3;
+constant FILE-ERROR          is export = 4;
+
+constant OUT-COMPLEX         is export = 0;
+constant OUT-REIM            is export = 1;
+constant OUT-NUM             is export = 2;
