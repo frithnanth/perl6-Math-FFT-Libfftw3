@@ -156,22 +156,22 @@ method in(Int :$output? = OUT-COMPLEX --> Positional)
 
 =head1 NAME
 
-Math::FFT::Libfftw3 - High-level bindings to libfftw3
+Math::FFT::Libfftw3::C2C - High-level bindings to libfftw3 Complex-to-Complex transform
 
 =head1 SYNOPSIS
 =begin code
 
 use v6;
 
-use Math::FFT::Libfftw3;
+use Math::FFT::Libfftw3::C2C;
 use Math::FFT::Libfftw3::Constants; # needed for the FFTW_BACKWARD constant
 
 my @in = (0, π/100 … 2*π)».sin;
 put @in».Complex».round(10⁻¹²); # print the original array as complex values rounded to 10⁻¹²
-my Math::FFT::Libfftw3 $fft .= new: data => @in;
+my Math::FFT::Libfftw3::C2C $fft .= new: data => @in;
 my @out = $fft.execute;
 put @out; # print the direct transform output
-my Math::FFT::Libfftw3 $fftr .= new: data => @out, direction => FFTW_BACKWARD;
+my Math::FFT::Libfftw3::C2C $fftr .= new: data => @out, direction => FFTW_BACKWARD;
 my @outr = $fftr.execute;
 put @outr».round(10⁻¹²); # print the backward transform output rounded to 10⁻¹²
 
@@ -181,15 +181,15 @@ put @outr».round(10⁻¹²); # print the backward transform output rounded to 1
 
 use v6;
 
-use Math::FFT::Libfftw3;
+use Math::FFT::Libfftw3::C2C;
 use Math::FFT::Libfftw3::Constants; # needed for the FFTW_BACKWARD constant
 
 # direct 2D transform
-my Math::FFT::Libfftw3 $fft .= new: data => 1..18, dims => (6, 3);
+my Math::FFT::Libfftw3::C2C $fft .= new: data => 1..18, dims => (6, 3);
 my @out = $fft.execute;
 put @out;
 # reverse 2D transform
-my Math::FFT::Libfftw3 $fftr .= new: data => @out, dims => (6,3), direction => FFTW_BACKWARD;
+my Math::FFT::Libfftw3::C2C $fftr .= new: data => @out, dims => (6,3), direction => FFTW_BACKWARD;
 my @outr = $fftr.execute;
 put @outr».round(10⁻¹²);
 
@@ -197,7 +197,8 @@ put @outr».round(10⁻¹²);
 
 =head1 DESCRIPTION
 
-B<Math::FFT::Libfftw3> provides an OO interface to libfftw3 and allows you to perform Fast Fourier Transforms.
+B<Math::FFT::Libfftw3::C2C> provides an OO interface to libfftw3 and allows you to perform Complex-to-Complex
+Fast Fourier Transforms.
 
 =head2 new(:@data!, :@dims?, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
 =head2 new(:$data!, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
