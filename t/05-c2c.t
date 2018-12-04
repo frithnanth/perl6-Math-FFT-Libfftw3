@@ -6,7 +6,7 @@ use Math::FFT::Libfftw3::C2C;
 use Math::FFT::Libfftw3::Constants;
 use NativeCall;
 
-dies-ok { my $fft = Math::FFT::Libfftw3::C2C.new }, 'dies if data is not passed';
+dies-ok { my $fft = Math::FFT::Libfftw3::C2C.new }, 'dies if no data passed';
 throws-like
   { Math::FFT::Libfftw3::C2C.new: data => <a b c> },
   X::Libfftw3,

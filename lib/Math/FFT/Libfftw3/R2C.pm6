@@ -6,7 +6,7 @@ use Math::FFT::Libfftw3::Constants;
 use Math::FFT::Libfftw3::Common;
 use Math::FFT::Libfftw3::Exception;
 
-unit class Math::FFT::Libfftw3::C2C:ver<0.1.1>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
+unit class Math::FFT::Libfftw3::R2C:ver<0.1.1>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
 
 has num64     @.out;
 has num64     @!in;
@@ -24,7 +24,9 @@ multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ Int,
   # .Array flattens a shaped array since Rakudo 2018.09
   die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
     if $*PERL.compiler.version < v2018.09;
-  self.bless(data => @data.Array, direction => $direction, dims => @data.shape, flag => $flag);
+  my @mdims = @data.shape;
+  @mdims = |@mdims[0..*-2], (@mdims[*-1] - 1) * 2 if $direction == FFTW_BACKWARD;
+  self.bless(data => @data.Array, direction => $direction, dims => @mdims, flag => $flag);
 }
 
 # Array of arrays
@@ -52,21 +54,36 @@ multi method new(:$data! where .^name eq 'Math::Matrix',
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE)
 {
-  self.bless(data => $data.list-rows.flat.list, direction => $direction, dims => $data.size, flag => $flag);
+  my @mdims = $data.size;
+  @mdims = |@mdims[0..*-2], (@mdims[*-1] - 1) * 2 if $direction == FFTW_BACKWARD;
+  self.bless(data => $data.list-rows.flat.list, direction => $direction, dims => @mdims, flag => $flag);
 }
 
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
 {
-  # What kind of data type?
-  given @data[0] {
-    when Complex {
-      @!in := CArray[num64].new: @data.map(|*)».reals.List.flat;
+  # Which direction?
+  given $!direction {
+    when FFTW_FORWARD {
+      # What kind of data type?
+      given @data[0] {
+        when Int | Rat | Num {
+          @!in := CArray[num64].new: @data».Num;
+        }
+        default {
+          fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Int, Rat or Num';
+        }
+      }
     }
-    when Int | Rat | Num {
-      @!in := CArray[num64].new: (@data Z 0 xx @data.elems).flat».Num;
-    }
-    default {
-      fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Int, Rat, Num or Complex';
+    when FFTW_BACKWARD {
+      # What kind of data type?
+      given @data[0] {
+        when Complex {
+          @!in := CArray[num64].new: @data.map(|*)».reals.List.flat;
+        }
+        default {
+          fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Wrong type. Try Complex';
+        }
+      }
     }
   }
   # Initialize @!dims and $!rank when @data is not shaped or when is not an array
@@ -75,7 +92,7 @@ submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, Int :$flag? = FF
       @!dims := CArray[int32].new: @dims;
       $!rank  = @dims.elems;
     } else {
-      @!dims := CArray[int32].new: (@!in.elems / 2).Int;
+      @!dims := CArray[int32].new: ($!direction == FFTW_FORWARD ?? @!in.elems !! ((@!in.elems / 2 - 1) * 2).Int);
       $!rank  = 1;
     }
   } elsif @data ~~ Array && @data.shape[0] ~~ Int {
@@ -95,9 +112,15 @@ method plan(Int $flag --> Nil)
 {
   # Create a plan. The FFTW_MEASURE flag destroys the input array; save it.
   my @savein := CArray[num64].new: @!in.list;
-  @!out      := CArray[num64].new: 0e0 xx @!in.elems;
-  $!plan      = fftw_plan_dft($!rank, @!dims, @!in, @!out, $!direction, $flag);
-  @!in       := CArray[num64].new: @savein.list;
+  if $!direction == FFTW_FORWARD {
+    # The output elems are n₀ × n₁ × … nₙ / 2 - 1
+    @!out := CArray[num64].new: 0e0 xx ((([*] @!dims[0..*-2]) * (@!dims[*-1] / 2 + 1).floor) * 2);
+    $!plan = fftw_plan_dft_r2c($!rank, @!dims, @!in, @!out, $flag);
+  } else {
+    @!out := CArray[num64].new: 0e0 xx ([*] @!dims.list);
+    $!plan = fftw_plan_dft_c2r($!rank, @!dims, @!in, @!out, $flag);
+  }
+  @!in := CArray[num64].new: @savein.list;
 }
 
 method execute(Int :$output? = OUT-COMPLEX --> Positional)
@@ -120,15 +143,7 @@ method execute(Int :$output? = OUT-COMPLEX --> Positional)
     when FFTW_BACKWARD {
       my @out := @!out.list »/» [*] @!dims.list; # backward trasforms are not normalized
       given $output {
-        when OUT-COMPLEX {
-          return @out.map(-> $r, $i { Complex.new($r, $i) }).list;
-        }
-        when OUT-REIM {
-          return @out;
-        }
-        when OUT-NUM {
-          return @out[0,2 … *];
-        }
+        return @out;
       }
     }
     default {
@@ -139,15 +154,22 @@ method execute(Int :$output? = OUT-COMPLEX --> Positional)
 
 method in(Int :$output? = OUT-COMPLEX --> Positional)
 {
-  given $output {
-    when OUT-COMPLEX {
-      return @!in.map(-> $r, $i { Complex.new($r, $i) }).list;
-    }
-    when OUT-REIM {
+  given $!direction {
+    when FFTW_FORWARD {
       return @!in.list;
     }
-    when OUT-NUM {
-      return @!in.list[0,2 … *];
+    when FFTW_BACKWARD {
+      given $output {
+        when OUT-COMPLEX {
+          return @!in.map(-> $r, $i { Complex.new($r, $i) }).list;
+        }
+        when OUT-REIM {
+          return @!in.list;
+        }
+        when OUT-NUM {
+          return @!in.list[0,2 … *];
+        }
+      }
     }
   }
 }
@@ -156,22 +178,22 @@ method in(Int :$output? = OUT-COMPLEX --> Positional)
 
 =head1 NAME
 
-Math::FFT::Libfftw3::C2C - High-level bindings to libfftw3 Complex-to-Complex transform
+Math::FFT::Libfftw3::R2C - High-level bindings to libfftw3 Real-to-Complex transform
 
 =head1 SYNOPSIS
 =begin code
 
 use v6;
 
-use Math::FFT::Libfftw3::C2C;
+use Math::FFT::Libfftw3::R2C;
 use Math::FFT::Libfftw3::Constants; # needed for the FFTW_BACKWARD constant
 
 my @in = (0, π/100 … 2*π)».sin;
 put @in».Complex».round(10⁻¹²); # print the original array as complex values rounded to 10⁻¹²
-my Math::FFT::Libfftw3::C2C $fft .= new: data => @in;
+my Math::FFT::Libfftw3::R2C $fft .= new: data => @in;
 my @out = $fft.execute;
 put @out; # print the direct transform output
-my Math::FFT::Libfftw3::C2C $fftr .= new: data => @out, direction => FFTW_BACKWARD;
+my Math::FFT::Libfftw3::R2C $fftr .= new: data => @out, direction => FFTW_BACKWARD;
 my @outr = $fftr.execute;
 put @outr».round(10⁻¹²); # print the backward transform output rounded to 10⁻¹²
 
@@ -181,15 +203,15 @@ put @outr».round(10⁻¹²); # print the backward transform output rounded to 1
 
 use v6;
 
-use Math::FFT::Libfftw3::C2C;
+use Math::FFT::Libfftw3::R2C;
 use Math::FFT::Libfftw3::Constants; # needed for the FFTW_BACKWARD constant
 
 # direct 2D transform
-my Math::FFT::Libfftw3::C2C $fft .= new: data => 1..18, dims => (6, 3);
+my Math::FFT::Libfftw3::R2C $fft .= new: data => 1..18, dims => (6, 3);
 my @out = $fft.execute;
 put @out;
 # reverse 2D transform
-my Math::FFT::Libfftw3::C2C $fftr .= new: data => @out, dims => (6,3), direction => FFTW_BACKWARD;
+my Math::FFT::Libfftw3::R2C $fftr .= new: data => @out, dims => (6,3), direction => FFTW_BACKWARD;
 my @outr = $fftr.execute;
 put @outr».round(10⁻¹²);
 
@@ -197,8 +219,11 @@ put @outr».round(10⁻¹²);
 
 =head1 DESCRIPTION
 
-B<Math::FFT::Libfftw3::C2C> provides an OO interface to libfftw3 and allows you to perform Complex-to-Complex
+B<Math::FFT::Libfftw3::R2C> provides an OO interface to libfftw3 and allows you to perform Real-to-Complex
 Fast Fourier Transforms.
+
+The direct transform accepts an array of real numbers and outputs a half-Hermitian array of complex numbers.
+The reverse transform accepts a half-Hermitian array of complex numbers and outputs an array of real numbers.
 
 =head2 new(:@data!, :@dims?, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
 =head2 new(:$data!, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
@@ -207,8 +232,8 @@ The first constructor accepts any Positional of type Int, Rat, Num, Complex (and
 it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
 
 The only mandatory argument is B<@data>.
-Multidimensional data are expressed in row-major order (see L<C Library Documentation|#clib>) and the array B<@dims> must be
-passed to the constructor, or the data will be interpreted as a 1D array.
+Multidimensional data are expressed in row-major order (see L<C Library Documentation|#clib>) and the array B<@dims>
+must be passed to the constructor, or the data will be interpreted as a 1D array.
 If one uses a shaped array, there's no need to pass the B<@dims> array, because the dimensions will be read
 from the array itself.
 
@@ -235,9 +260,15 @@ B<OUT-REIM> makes the C<execute> method return the native representation of the 
 real/imaginary values.
 B<OUT-NUM> makes the C<execute> method return just the real part of the complex values.
 
+When performing the reverse transform, the output array has only real values, so the C<:$output> parameter
+is ignored.
+
 =head2 in(Int :$output? = OUT-COMPLEX --> Positional)
 
 Returns the input array, same options as per the output array.
+
+When performing the direct transform, the input array has only real values, so the C<:$output> parameter
+is ignored.
 
 =head2 Attributes
 

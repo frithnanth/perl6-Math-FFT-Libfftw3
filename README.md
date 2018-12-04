@@ -114,6 +114,15 @@ Saves the plan into a file. Returns **True** if successful and a **Failure** obj
 
 Loads the plan From a file. Returns **True** if successful and a **Failure** object otherwise.
 
+### Math::FFT::Libfftw3::R2C Real-to-Complex transform
+
+The interface for the R2C transform is slightly different.
+
+In particular:
+
+* in the `execute` method, when performing the reverse transform, the output array has only real values, so the `:$output` parameter is ignored.
+* in the `in` method, when performing the direct transform, the input array has only real values, so the `:$output` parameter is ignored.
+
 
 ## [C Library documentation](#clib)
 
@@ -162,10 +171,9 @@ array to the `new` method using `$*PERL.compiler.version < v2018.09` results in 
 A lot.
 
 The underlying C library provides functions for trasnforming a complex input into a complex output: a c2c transform.
-There are other possibilities: r2c and c2r transforms, and r2r transforms:
+There are other possibilities: r2c and c2r transforms (implemented), and r2r transforms:
 
-* DFT con real input, complex-Hermitian halfcomplex output
-* DFT con real input, even/odd symmetry (discrete cosine/sine transform: DCT/DST)
+* DFT with real input, even/odd symmetry (discrete cosine/sine transform: DCT/DST)
 * DHT Discrete Hartley Transform
 
 Besides:
