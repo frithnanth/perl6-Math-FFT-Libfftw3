@@ -16,3 +16,7 @@ has int32     $.direction;
 has fftw_plan $!plan;
 
 
+method execute(Int :$output? = OUT-COMPLEX --> Positional)
+{
+  …
+}
