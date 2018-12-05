@@ -8,7 +8,7 @@
   "test-depends" : [ "Test" ],
   "provides" : {
     "Math::FFT::Libfftw3::C2C" : "lib/Math/FFT/Libfftw3/C2C.pm6",
-    "Math::FFT::Libfftw3::C2R" : "lib/Math/FFT/Libfftw3/R2C.pm6",
+    "Math::FFT::Libfftw3::R2C" : "lib/Math/FFT/Libfftw3/R2C.pm6",
     "Math::FFT::Libfftw3::Common" : "lib/Math/FFT/Libfftw3/Common.pm6",
     "Math::FFT::Libfftw3::Constants" : "lib/Math/FFT/Libfftw3/Constants.pm6",
     "Math::FFT::Libfftw3::Exception" : "lib/Math/FFT/Libfftw3/Exception.pm6",
