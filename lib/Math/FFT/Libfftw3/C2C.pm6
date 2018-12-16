@@ -6,7 +6,7 @@ use Math::FFT::Libfftw3::Constants;
 use Math::FFT::Libfftw3::Common;
 use Math::FFT::Libfftw3::Exception;
 
-unit class Math::FFT::Libfftw3::C2C:ver<0.1.1>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
+unit class Math::FFT::Libfftw3::C2C:ver<0.1.2>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
 
 has num64     @.out;
 has num64     @!in;
@@ -24,7 +24,7 @@ multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ Int,
   # .Array flattens a shaped array since Rakudo 2018.09
   die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
     if $*PERL.compiler.version < v2018.09;
-  self.bless(data => @data.Array, direction => $direction, dims => @data.shape, flag => $flag);
+  self.bless(:data(@data.Array), :direction($direction), :dims(@data.shape), :flag($flag));
 }
 
 # Array of arrays
@@ -35,7 +35,7 @@ multi method new(:@data! where @data ~~ Array && @data[0] ~~ Array,
 {
   fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
     if @dims.elems == 0;
-  self.bless(data => do { gather @data.deepmap(*.take) }, direction => $direction, dims => @dims, flag => $flag);
+  self.bless(:data(do { gather @data.deepmap(*.take) }), :direction($direction), :dims(@dims), :flag($flag));
 }
 
 # Plain array or Positional
@@ -44,7 +44,7 @@ multi method new(:@data! where @data !~~ Array || @data.shape[0] ~~ Whatever,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE)
 {
-  self.bless(data => @data, direction => $direction, dims => @dims, flag => $flag);
+  self.bless(:data(@data), :direction($direction), :dims(@dims), :flag($flag));
 }
 
 # Math::Matrix object
@@ -52,7 +52,7 @@ multi method new(:$data! where .^name eq 'Math::Matrix',
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE)
 {
-  self.bless(data => $data.list-rows.flat.list, direction => $direction, dims => $data.size, flag => $flag);
+  self.bless(:data($data.list-rows.flat.list), :direction($direction), :dims($data.size), :flag($flag));
 }
 
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
