@@ -24,6 +24,7 @@ constant DIRECTION-ERROR     is export = 2;
 constant NO-DIMS             is export = 3;
 constant FILE-ERROR          is export = 4;
 constant DIMS-ERROR          is export = 5;
+constant KIND-ERROR          is export = 6;
 
 constant OUT-COMPLEX         is export = 0;
 constant OUT-REIM            is export = 1;
