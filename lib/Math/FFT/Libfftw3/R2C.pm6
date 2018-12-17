@@ -85,6 +85,9 @@ submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, Int :$flag? = FF
         }
       }
     }
+    default {
+      fail X::Libfftw3.new: errno => DIRECTION-ERROR, error => 'Wrong direction. Try FFTW_FORWARD or FFTW_BACKWARD';
+    }
   }
   # Initialize @!dims and $!rank when @data is not shaped or when is not an array
   if @data !~~ Array || @data.shape[0] ~~ Whatever {
@@ -142,9 +145,6 @@ method execute(Int :$output? = OUT-COMPLEX --> Positional)
     }
     when FFTW_BACKWARD {
       return @!out.list »/» [*] @!dims.list; # backward trasforms are not normalized
-    }
-    default {
-      fail X::Libfftw3.new: errno => DIRECTION-ERROR, error => 'Wrong direction. Try FFTW_FORWARD or FFTW_BACKWARD';
     }
   }
 }

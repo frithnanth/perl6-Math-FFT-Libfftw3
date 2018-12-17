@@ -12,56 +12,65 @@ has num64     @.out;
 has num64     @!in;
 has int32     $.rank;
 has int32     @.dims;
+has int32     $.direction;
 has int32     @.kind;
 has fftw_plan $!plan;
 
 # Shaped Array
 multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ Int,
                  :@dims?,
+                 Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :@kind!)
 {
   # .Array flattens a shaped array since Rakudo 2018.09
   die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
     if $*PERL.compiler.version < v2018.09;
-  self.bless(:data(@data.Array), :dims(@data.shape), :flag($flag), :kind(@kind));
+  self.bless(:data(@data.Array), :direction($direction), :dims(@data.shape), :flag($flag), :kind(@kind));
 }
 
 # Array of arrays
 multi method new(:@data! where @data ~~ Array && @data[0] ~~ Array,
                  :@dims?,
+                 Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :@kind!)
 {
   fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
     if @dims.elems == 0;
-  self.bless(:data(do { gather @data.deepmap(*.take) }), :dims(@dims), :flag($flag), :kind(@kind));
+  self.bless(:data(do { gather @data.deepmap(*.take) }), :direction($direction), :dims(@dims), :flag($flag), :kind(@kind));
 }
 
 # Plain array or Positional
 multi method new(:@data! where @data !~~ Array || @data.shape[0] ~~ Whatever,
                  :@dims?,
+                 Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :@kind!)
 {
-  self.bless(:data(@data), :dims(@dims), :flag($flag), :kind(@kind));
+  self.bless(:data(@data), :direction($direction), :dims(@dims), :flag($flag), :kind(@kind));
 }
 
 # Math::Matrix object
 multi method new(:$data! where .^name eq 'Math::Matrix',
+                 Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :@kind!)
 {
-  self.bless(:data($data.list-rows.flat.list), :dims($data.size), :flag($flag), :kind(@kind));
+  self.bless(:data($data.list-rows.flat.list), :direction($direction), :dims($data.size), :flag($flag), :kind(@kind));
 }
 
 submethod BUILD(:@data!,
                 :@dims?,
+                Int :$!direction? = FFTW_FORWARD,
                 Int :$flag? = FFTW_ESTIMATE,
                 :@kind!)
 {
   if @kind.all !~~ fftw_r2r_kind {
     fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Invalid value for argument @kind';
+  }
+  if $!direction !~~ FFTW_FORWARD|FFTW_BACKWARD {
+    fail X::Libfftw3.new: errno => DIRECTION-ERROR, error => 'Wrong direction. Try FFTW_FORWARD or FFTW_BACKWARD';
   }
   # What kind of data type?
   given @data[0] {
@@ -116,10 +125,31 @@ method execute(--> Positional)
       return @!out.list;
     }
     when FFTW_HC2R {
-      return @!out.list »/» [*] @!dims.list; # backward trasforms are not normalized
+      return @!out.list »/» [*] @!dims.list;
+    }
+    when FFTW_REDFT00 {
+      if $!direction == FFTW_BACKWARD { # backward trasforms are not normalized
+        return @!out.list »/» (2 * (([*] @!dims.list) - 1));
+      } else {
+        return @!out.list;
+      }
+    }
+    when FFTW_RODFT00 {
+      if $!direction == FFTW_BACKWARD {
+        return @!out.list »/» (2 * (([*] @!dims.list) + 1));
+      } else {
+        return @!out.list;
+      }
+    }
+    when FFTW_REDFT01|FFTW_REDFT10|FFTW_REDFT11|FFTW_RODFT01|FFTW_RODFT10|FFTW_RODFT11 {
+      if $!direction == FFTW_BACKWARD {
+        return @!out.list »/» (2 * [*] @!dims.list);
+      } else {
+        return @!out.list;
+      }
     }
     default {
-      fail X::Libfftw3.new: errno => DIRECTION-ERROR, error => 'Wrong @kind argument';
+      fail X::Libfftw3.new: errno => KIND-ERROR, error => 'Wrong value for the @kind argument';
     }
   }
 }
