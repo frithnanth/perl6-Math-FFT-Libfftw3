@@ -21,12 +21,12 @@ multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ Int,
                  :@dims?,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
-                 :@kind!)
+                 :$kind!)
 {
   # .Array flattens a shaped array since Rakudo 2018.09
   die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
     if $*PERL.compiler.version < v2018.09;
-  self.bless(:data(@data.Array), :direction($direction), :dims(@data.shape), :flag($flag), :kind(@kind));
+  self.bless(:data(@data.Array), :direction($direction), :dims(@data.shape), :flag($flag), :kind($kind));
 }
 
 # Array of arrays
@@ -34,11 +34,11 @@ multi method new(:@data! where @data ~~ Array && @data[0] ~~ Array,
                  :@dims?,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
-                 :@kind!)
+                 :$kind!)
 {
   fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
     if @dims.elems == 0;
-  self.bless(:data(do { gather @data.deepmap(*.take) }), :direction($direction), :dims(@dims), :flag($flag), :kind(@kind));
+  self.bless(:data(do { gather @data.deepmap(*.take) }), :direction($direction), :dims(@dims), :flag($flag), :kind($kind));
 }
 
 # Plain array or Positional
@@ -46,28 +46,28 @@ multi method new(:@data! where @data !~~ Array || @data.shape[0] ~~ Whatever,
                  :@dims?,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
-                 :@kind!)
+                 :$kind!)
 {
-  self.bless(:data(@data), :direction($direction), :dims(@dims), :flag($flag), :kind(@kind));
+  self.bless(:data(@data), :direction($direction), :dims(@dims), :flag($flag), :kind($kind));
 }
 
 # Math::Matrix object
 multi method new(:$data! where .^name eq 'Math::Matrix',
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
-                 :@kind!)
+                 :$kind!)
 {
-  self.bless(:data($data.list-rows.flat.list), :direction($direction), :dims($data.size), :flag($flag), :kind(@kind));
+  self.bless(:data($data.list-rows.flat.list), :direction($direction), :dims($data.size), :flag($flag), :kind($kind));
 }
 
 submethod BUILD(:@data!,
                 :@dims?,
                 Int :$!direction? = FFTW_FORWARD,
                 Int :$flag? = FFTW_ESTIMATE,
-                :@kind!)
+                :$kind!)
 {
-  if @kind.all !~~ fftw_r2r_kind {
-    fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Invalid value for argument @kind';
+  if $kind !~~ fftw_r2r_kind {
+    fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Invalid value for argument kind';
   }
   if $!direction !~~ FFTW_FORWARD|FFTW_BACKWARD {
     fail X::Libfftw3.new: errno => DIRECTION-ERROR, error => 'Wrong direction. Try FFTW_FORWARD or FFTW_BACKWARD';
@@ -94,10 +94,7 @@ submethod BUILD(:@data!,
     @!dims := CArray[int32].new: @dims;
     $!rank  = @!dims.elems;
   }
-  if @kind.elems != $!rank {
-    fail X::Libfftw3.new: errno => DIMS-ERROR, error => 'Argument @kind must have the same dimension as the data';
-  }
-  self.plan: $flag, @kind;
+  self.plan: $flag, $kind;
 }
 
 submethod DESTROY
@@ -106,11 +103,11 @@ submethod DESTROY
   fftw_cleanup;
 }
 
-method plan(Int $flag, @kind --> Nil)
+method plan(Int $flag, $kind --> Nil)
 {
   # Create a plan. The FFTW_MEASURE flag destroys the input array; save it.
   my @savein := CArray[num64].new: @!in.list;
-  @!kind     := CArray[int32].new: @kind;
+  @!kind     := CArray[int32].new: $kind xx $!rank;
   @!out      := CArray[num64].new: 0e0 xx @!in.list.elems;
   $!plan      = fftw_plan_r2r($!rank, @!dims, @!in, @!out, @!kind, $flag);
   @!in       := CArray[num64].new: @savein.list;
@@ -175,10 +172,10 @@ use Math::FFT::Libfftw3::Constants; # needed for the FFTW_R2HC and FFTW_HC2R con
 
 my @in = (0, π/100 … 2*π)».sin;
 put @in».round(10⁻¹²); # print the original array as complex values rounded to 10⁻¹²
-my Math::FFT::Libfftw3::R2R $fft .= new: data => @in, kind => (FFTW_R2HC,);
+my Math::FFT::Libfftw3::R2R $fft .= new: data => @in, kind => FFTW_R2HC;
 my @out = $fft.execute;
 put @out; # print the direct transform output
-my Math::FFT::Libfftw3::R2R $fftr .= new: data => @out, kind => (FFTW_HC2R,);
+my Math::FFT::Libfftw3::R2R $fftr .= new: data => @out, kind => FFTW_HC2R;
 my @outr = $fftr.execute;
 put @outr».round(10⁻¹²); # print the backward transform output rounded to 10⁻¹²
 
@@ -192,11 +189,11 @@ use Math::FFT::Libfftw3::R2R;
 use Math::FFT::Libfftw3::Constants; # needed for the FFTW_R2HC and FFTW_HC2R constants
 
 # direct 2D transform
-my Math::FFT::Libfftw3::R2R $fft .= new: data => 1..18, dims => (6, 3), kind => (FFTW_R2HC, FFTW_R2HC);
+my Math::FFT::Libfftw3::R2R $fft .= new: data => 1..18, dims => (6, 3), kind => FFTW_R2HC;
 my @out = $fft.execute;
 put @out;
 # reverse 2D transform
-my Math::FFT::Libfftw3::R2R $fftr .= new: data => @out, dims => (6,3), kind => (FFTW_HC2R, FFTW_HC2R);
+my Math::FFT::Libfftw3::R2R $fftr .= new: data => @out, dims => (6, 3), kind => FFTW_HC2R;
 my @outr = $fftr.execute;
 put @outr».round(10⁻¹²);
 
@@ -211,23 +208,20 @@ The direct transform accepts an array of real numbers and outputs a half-complex
 The reverse transform accepts a half-complex array of real numbers and outputs an array of real numbers.
 
 
-=head2 new(:@data!, :@dims?, Int :$flag? = FFTW_ESTIMATE, :@kind!)
-=head2 new(:$data!, Int :$flag? = FFTW_ESTIMATE, :@kind!)
+=head2 new(:@data!, :@dims?, Int :$flag? = FFTW_ESTIMATE, :$kind!)
+=head2 new(:$data!, Int :$flag? = FFTW_ESTIMATE, :$kind!)
 
 The first constructor accepts any Positional of type Int, Rat, Num (and IntStr, RatStr, NumStr);
 it allows List of Ints, Seq of Rat, shaped arrays of any base type, etc.
 
-The only mandatory argument are B<@data> and B<kind>.
+The only mandatory argument are B<@data> and B<$kind>.
 Multidimensional data are expressed in row-major order (see L<C Library Documentation|#clib>) and the array B<@dims>
 must be passed to the constructor, or the data will be interpreted as a 1D array.
 If one uses a shaped array, there's no need to pass the B<@dims> array, because the dimensions will be read
 from the array itself.
 
-The B<kind> array specifies what kind of trasform will be performed on each dimension of the input data.
-It is possible to use different transforms on different dimensions.
-
-Note that R2R constructor don't have the B<direction> argument, because that is specified by the B<kind> argument,
-which is an array of B<fftw_r2r_kind> constants defined as an B<enum> in B<Math::FFT::Libfftw3::Constants>.
+The B<kind> argument, of type B<fftw_r2r_kind>, specifies what kind of trasform will be performed on the input data.
+B<fftw_r2r_kind> constants are defined as an B<enum> in B<Math::FFT::Libfftw3::Constants>.
 The values of the B<fftw_r2r_kind> enum are:
 
 =item FFTW_R2HC
@@ -242,8 +236,10 @@ The values of the B<fftw_r2r_kind> enum are:
 =item FFTW_RODFT10
 =item FFTW_RODFT11
 
-For example the Half-Complex transform uses the symbol FFTW_R2HC for a Real to Half-Complex (direct) transform, while
+The Half-Complex transform uses the symbol FFTW_R2HC for a Real to Half-Complex (direct) transform, while
 the corresponding Half-Complex to Real (reverse) transform is specified by the symbol FFTW_HC2R.
+The reverse transform of FFTW_R*DFT10 is FFTW_R*DFT01 and vice versa, of FFTW_R*DFT11 is FFTW_R*DFT11,
+and of FFTW_R*DFT00 is FFTW_R*DFT00.
 
 The B<$flag> parameter specifies the way the underlying library has to analyze the data in order to create a plan
 for the transform; it defaults to FFTW_ESTIMATE (see L<#Documentation>).
@@ -267,6 +263,7 @@ Some of this class' attributes are readable:
 =item @.out
 =item $.rank
 =item @.dims
+=item $.direction
 
 =head2 Wisdom interface
 

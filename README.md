@@ -67,7 +67,7 @@ from the array itself.
 The **$direction** parameter is used to specify a direct or backward transform; it defaults to `FFTW_FORWARD`.
 
 The **$flag** parameter specifies the way the underlying library has to analyze the data in order to create a plan
-for the transform; it defaults to `FFTW_ESTIMATE` (see the C Library Documentation).
+for the transform; it defaults to `FFTW_ESTIMATE` (see the [C Library Documentation](#clib)).
 
 The second constructor accepts a scalar: an object of type **Math::Matrix** (if that module is installed, otherwise
 it returns a **Failure**), a **$direction**, and a **$flag**; the meaning of the last two parameters is the same as
@@ -123,8 +123,17 @@ In particular:
 * in the `execute` method, when performing the reverse transform, the output array has only real values, so the `:$output` parameter is ignored.
 * in the `in` method, when performing the direct transform, the input array has only real values, so the `:$output` parameter is ignored.
 
+See the `pod` documentation inside the module for further details.
 
-## [C Library documentation](#clib)
+### Math::FFT::Libfftw3::R2R Real-to-Real transform
+
+This module implements several R2R transforms.
+The major difference is that the constructor has a new `$kind` argument, which specifies the kind of trasform that
+will be performed on the input data.
+
+See the `pod` documentation inside the module for further details.
+
+## C Library documentation
 
 For more details on libfftw see [the FFTW home](http://www.fftw.org/).
 The manual is available [here](http://www.fftw.org/fftw3.pdf).
@@ -168,21 +177,11 @@ array to the `new` method using `$*PERL.compiler.version < v2018.09` results in 
 
 ## TODO
 
-A lot.
+There are some alternative interface to implement:
 
-The underlying C library provides functions for trasnforming a complex input into a complex output: a c2c transform.
-There are other possibilities: r2c and c2r transforms (implemented), and r2r transforms:
-
-* DFT with real input, even/odd symmetry (discrete cosine/sine transform: DCT/DST)
-* DHT Discrete Hartley Transform
-
-Besides:
-
-* There's a *guru* interface to apply the same plan to different data.
-* There's a *multi-threaded* interface, which supports parallel one- and multi-dimensional transforms.
-* There's a *distributed-memory* interface, for parallel systems supporting the MPI message-passing interface.
-
-Future development might change the API or might provide different classes for each data type.
+* The *guru* interface to apply the same plan to different data.
+* The *multi-threaded* interface, which supports parallel one- and multi-dimensional transforms.
+* The *distributed-memory* interface, for parallel systems supporting the MPI message-passing interface.
 
 ## Author
 
