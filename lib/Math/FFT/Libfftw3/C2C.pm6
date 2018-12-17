@@ -57,6 +57,9 @@ multi method new(:$data! where .^name eq 'Math::Matrix',
 
 submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
 {
+  if $!direction !~~ FFTW_FORWARD|FFTW_BACKWARD {
+    fail X::Libfftw3.new: errno => DIRECTION-ERROR, error => 'Wrong direction. Try FFTW_FORWARD or FFTW_BACKWARD';
+  }
   # What kind of data type?
   given @data[0] {
     when Complex {
@@ -130,9 +133,6 @@ method execute(Int :$output? = OUT-COMPLEX --> Positional)
           return @out[0,2 … *];
         }
       }
-    }
-    default {
-      fail X::Libfftw3.new: errno => DIRECTION-ERROR, error => 'Wrong direction. Try FFTW_FORWARD or FFTW_BACKWARD';
     }
   }
 }
