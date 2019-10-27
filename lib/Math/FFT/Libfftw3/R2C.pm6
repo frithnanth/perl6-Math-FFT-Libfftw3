@@ -114,7 +114,8 @@ submethod DESTROY
 method plan(Int $flag --> Nil)
 {
   # Create a plan. The FFTW_MEASURE flag destroys the input array; save it.
-  my @savein := CArray[num64].new: @!in.list;
+  my @savein;
+  @savein := CArray[num64].new: @!in.list if $flag == FFTW_MEASURE;
   if $!direction == FFTW_FORWARD {
     # The output elems are n₀ × n₁ × … nₙ / 2 - 1
     @!out := CArray[num64].new: 0e0 xx ((([*] @!dims[0..*-2]) * (@!dims[*-1] / 2 + 1).floor) * 2);
@@ -123,7 +124,7 @@ method plan(Int $flag --> Nil)
     @!out := CArray[num64].new: 0e0 xx ([*] @!dims.list);
     $!plan = fftw_plan_dft_c2r($!rank, @!dims, @!in, @!out, $flag);
   }
-  @!in := CArray[num64].new: @savein.list;
+  @!in := CArray[num64].new: @savein.list if $flag == FFTW_MEASURE;
 }
 
 method execute(Int :$output? = OUT-COMPLEX --> Positional)

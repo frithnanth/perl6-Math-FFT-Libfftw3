@@ -106,11 +106,12 @@ submethod DESTROY
 method plan(Int $flag, $kind --> Nil)
 {
   # Create a plan. The FFTW_MEASURE flag destroys the input array; save it.
-  my @savein := CArray[num64].new: @!in.list;
-  @!kind     := CArray[int32].new: $kind xx $!rank;
-  @!out      := CArray[num64].new: 0e0 xx @!in.list.elems;
-  $!plan      = fftw_plan_r2r($!rank, @!dims, @!in, @!out, @!kind, $flag);
-  @!in       := CArray[num64].new: @savein.list;
+  my @savein;
+  @savein := CArray[num64].new: @!in.list if $flag == FFTW_MEASURE;
+  @!kind  := CArray[int32].new: $kind xx $!rank;
+  @!out   := CArray[num64].new: 0e0 xx @!in.list.elems;
+  $!plan   = fftw_plan_r2r($!rank, @!dims, @!in, @!out, @!kind, $flag);
+  @!in    := CArray[num64].new: @savein.list if $flag == FFTW_MEASURE;
 }
 
 

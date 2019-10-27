@@ -97,10 +97,11 @@ submethod DESTROY
 method plan(Int $flag --> Nil)
 {
   # Create a plan. The FFTW_MEASURE flag destroys the input array; save it.
-  my @savein := CArray[num64].new: @!in.list;
-  @!out      := CArray[num64].new: 0e0 xx @!in.elems;
-  $!plan      = fftw_plan_dft($!rank, @!dims, @!in, @!out, $!direction, $flag);
-  @!in       := CArray[num64].new: @savein.list;
+  my @savein;
+  @savein := CArray[num64].new: @!in.list if $flag == FFTW_MEASURE;
+  @!out   := CArray[num64].new: 0e0 xx @!in.elems;
+  $!plan   = fftw_plan_dft($!rank, @!dims, @!in, @!out, $!direction, $flag);
+  @!in    := CArray[num64].new: @savein.list if $flag == FFTW_MEASURE;
 }
 
 method execute(Int :$output? = OUT-COMPLEX --> Positional)
