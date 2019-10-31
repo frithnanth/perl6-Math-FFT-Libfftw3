@@ -64,7 +64,37 @@ subtest {
      -3e0 + -1.7320508075688772e0i,
      -3e0 + -5.196152422706632e0i]».round(10⁻¹²),
     'using FFTW_MEASURE';
-}, 'Range of Int - 1D transform';
+}, 'Range of Int - 1D transform with generic plan';
+subtest {
+  my Math::FFT::Libfftw3::C2C $fft1 .= new: data => 1..6, dim => 1;
+  my @out;
+  lives-ok { @out = $fft1.execute }, 'execute transform';
+  is-deeply @out».round(10⁻¹²),
+    [21e0 + 0e0i,
+     -3e0 + 5.196152422706632e0i,
+     -3e0 + 1.7320508075688772e0i,
+     -3e0 + 0e0i,
+     -3e0 + -1.7320508075688772e0i,
+     -3e0 + -5.196152422706632e0i]».round(10⁻¹²),
+    'direct transform - Complex output';
+  my Math::FFT::Libfftw3::C2C $fftr .= new: data => @out, direction => FFTW_BACKWARD, dim => 1;
+  my @outr = $fftr.execute;
+  is-deeply @outr».round(10⁻¹²)».Num, [1e0, 2e0, 3e0, 4e0, 5e0, 6e0], 'inverse transform - Complex output';
+  my Math::FFT::Libfftw3::C2C $fft2 .= new: data => 1..6, flag => FFTW_MEASURE, dim => 1;
+  my @out2 = $fft1.execute;
+  is-deeply @out2».round(10⁻¹²),
+    [21e0 + 0e0i,
+     -3e0 + 5.196152422706632e0i,
+     -3e0 + 1.7320508075688772e0i,
+     -3e0 + 0e0i,
+     -3e0 + -1.7320508075688772e0i,
+     -3e0 + -5.196152422706632e0i]».round(10⁻¹²),
+    'using FFTW_MEASURE';
+  throws-like
+    { Math::FFT::Libfftw3::C2C.new: data => 1..6, dim => 8 },
+    X::Libfftw3, message => /Wrong ' ' plan ' ' requested/,
+    'fails if dim not in 1..3';
+}, 'Range of Int - 1D transform with specific 1D plan';
 subtest {
   {
     my Math::FFT::Libfftw3::C2C $fft .= new: data => (1, 2 … 6);

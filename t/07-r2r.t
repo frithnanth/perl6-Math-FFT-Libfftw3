@@ -42,7 +42,27 @@ subtest {
   is-deeply @out2».round(10⁻¹²),
     [21, -3, -3, -3, 1.732050807569, 5.196152422707]».round(10⁻¹²),
     'using FFTW_MEASURE';
-}, 'Range of Int - 1D transform';
+}, 'Range of Int - 1D transform with generic plan';
+subtest {
+  my Math::FFT::Libfftw3::R2R $fft .= new: data => 1..6, kind => FFTW_R2HC, dim => 1;
+  my @out;
+  lives-ok { @out = $fft.execute }, 'execute transform';
+  is-deeply @out».round(10⁻¹²),
+    [21, -3, -3, -3, 1.732050807569, 5.196152422707]».round(10⁻¹²),
+    'r2r direct transform';
+  my Math::FFT::Libfftw3::R2R $fftr .= new: data => @out, direction => FFTW_BACKWARD, kind => FFTW_HC2R, dim => 1;
+  my @outr = $fftr.execute;
+  is-deeply @outr».round(10⁻¹²)».Num, [1e0, 2e0, 3e0, 4e0, 5e0, 6e0], 'r2r inverse transform';
+  my Math::FFT::Libfftw3::R2R $fft2 .= new: data => 1..6, flag => FFTW_MEASURE, kind => FFTW_R2HC, dim => 1;
+  my @out2 = $fft.execute;
+  is-deeply @out2».round(10⁻¹²),
+    [21, -3, -3, -3, 1.732050807569, 5.196152422707]».round(10⁻¹²),
+    'using FFTW_MEASURE';
+  throws-like
+    { Math::FFT::Libfftw3::R2R.new: data => 1..6, kind => FFTW_R2HC, dim => 8 },
+    X::Libfftw3, message => /Wrong ' ' plan ' ' requested/,
+    'fails if dim not in 1..3';
+}, 'Range of Int - 1D transform with specific 1D plan';
 subtest {
   {
     my Math::FFT::Libfftw3::R2R $fft .= new: data => (1, 2 … 6), kind => FFTW_R2HC;

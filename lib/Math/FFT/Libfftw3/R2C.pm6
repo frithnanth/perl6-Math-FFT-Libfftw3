@@ -19,48 +19,56 @@ has fftw_plan $!plan;
 multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ Int,
                  :@dims?,
                  Int :$direction? = FFTW_FORWARD,
-                 Int :$flag? = FFTW_ESTIMATE)
+                 Int :$flag? = FFTW_ESTIMATE,
+                 Int :$dim?)
 {
   # .Array flattens a shaped array since Rakudo 2018.09
   die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
     if $*PERL.compiler.version < v2018.09;
   my @mdims = @data.shape;
   @mdims = |@mdims[0..*-2], (@mdims[*-1] - 1) * 2 if $direction == FFTW_BACKWARD;
-  self.bless(:data(@data.Array), :direction($direction), :dims(@mdims), :flag($flag));
+  self.bless(:data(@data.Array), :direction($direction), :dims(@mdims), :flag($flag), :dim($dim));
 }
 
 # Array of arrays
 multi method new(:@data! where @data ~~ Array && @data[0] ~~ Array,
                  :@dims?,
                  Int :$direction? = FFTW_FORWARD,
-                 Int :$flag? = FFTW_ESTIMATE)
+                 Int :$flag? = FFTW_ESTIMATE,
+                 Int :$dim?)
 {
   fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
     if @dims.elems == 0;
-  self.bless(:data(do { gather @data.deepmap(*.take) }), :direction($direction), :dims(@dims), :flag($flag));
+  self.bless(:data(do { gather @data.deepmap(*.take) }), :direction($direction), :dims(@dims), :flag($flag), :dim($dim));
 }
 
 # Plain array or Positional
 multi method new(:@data! where @data !~~ Array || @data.shape[0] ~~ Whatever,
                  :@dims?,
                  Int :$direction? = FFTW_FORWARD,
-                 Int :$flag? = FFTW_ESTIMATE)
+                 Int :$flag? = FFTW_ESTIMATE,
+                 Int :$dim?)
 {
-  self.bless(:data(@data), :direction($direction), :dims(@dims), :flag($flag));
+  self.bless(:data(@data), :direction($direction), :dims(@dims), :flag($flag), :dim($dim));
 }
 
 # Math::Matrix object
 multi method new(:$data! where .^name eq 'Math::Matrix',
                  Int :$direction? = FFTW_FORWARD,
-                 Int :$flag? = FFTW_ESTIMATE)
+                 Int :$flag? = FFTW_ESTIMATE,
+                 Int :$dim?)
 {
   my @mdims = $data.size;
   @mdims = |@mdims[0..*-2], (@mdims[*-1] - 1) * 2 if $direction == FFTW_BACKWARD;
-  self.bless(:data($data.list-rows.flat.list), :direction($direction), :dims(@mdims), :flag($flag));
+  self.bless(:data($data.list-rows.flat.list), :direction($direction), :dims(@mdims), :flag($flag), :dim($dim));
 }
 
-submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
+submethod BUILD(:@data!, :@dims?, :$!direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE, :dim($dim))
 {
+  with $dim {
+    fail X::Libfftw3.new: errno => DIM-ERROR, error => 'Wrong plan requested. Try 1..3'
+      unless $dim ~~ 1..3;
+  }
   # Which direction?
   given $!direction {
     when FFTW_FORWARD {
@@ -111,7 +119,7 @@ submethod DESTROY
   fftw_cleanup;
 }
 
-method plan(Int $flag --> Nil)
+method plan(Int $flag, Int $dim? --> Nil)
 {
   # Create a plan. The FFTW_MEASURE flag destroys the input array; save it.
   my @savein;
@@ -119,10 +127,20 @@ method plan(Int $flag --> Nil)
   if $!direction == FFTW_FORWARD {
     # The output elems are n₀ × n₁ × … nₙ / 2 - 1
     @!out := CArray[num64].new: 0e0 xx ((([*] @!dims[0..*-2]) * (@!dims[*-1] / 2 + 1).floor) * 2);
-    $!plan = fftw_plan_dft_r2c($!rank, @!dims, @!in, @!out, $flag);
+    given $dim {
+      when 1  { $!plan = fftw_plan_dft_r2c_1d(@!dims[0], @!in, @!out, $flag) }
+      when 2  { $!plan = fftw_plan_dft_r2c_2d(@!dims[0], @!dims[1], @!in, @!out, $flag) }
+      when 3  { $!plan = fftw_plan_dft_r2c_3d(@!dims[0], @!dims[1], @!dims[2], @!in, @!out, $flag) }
+      default { $!plan = fftw_plan_dft_r2c($!rank, @!dims, @!in, @!out, $flag) }
+    }
   } else {
     @!out := CArray[num64].new: 0e0 xx ([*] @!dims.list);
-    $!plan = fftw_plan_dft_c2r($!rank, @!dims, @!in, @!out, $flag);
+    given $dim {
+      when 1  { $!plan = fftw_plan_dft_c2r_1d(@!dims[0], @!in, @!out, $flag) }
+      when 2  { $!plan = fftw_plan_dft_c2r_2d(@!dims[0], @!dims[1], @!in, @!out, $flag) }
+      when 3  { $!plan = fftw_plan_dft_c2r_3d(@!dims[0], @!dims[1], @!dims[2], @!in, @!out, $flag) }
+      default { $!plan = fftw_plan_dft_c2r($!rank, @!dims, @!in, @!out, $flag) }
+    }
   }
   @!in := CArray[num64].new: @savein.list if $flag == FFTW_MEASURE;
 }
@@ -223,8 +241,8 @@ Fast Fourier Transforms.
 The direct transform accepts an array of real numbers and outputs a half-Hermitian array of complex numbers.
 The reverse transform accepts a half-Hermitian array of complex numbers and outputs an array of real numbers.
 
-=head2 new(:@data!, :@dims?, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
-=head2 new(:$data!, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
+=head2 new(:@data!, :@dims?, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE, Int :$dim?)
+=head2 new(:$data!, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE, Int :$dim?)
 
 The first constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr, ComplexStr);
 it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
@@ -239,6 +257,9 @@ The B<$direction> parameter is used to specify a direct or backward transform; i
 
 The B<$flag> parameter specifies the way the underlying library has to analyze the data in order to create a plan
 for the transform; it defaults to FFTW_ESTIMATE (see L<#Documentation>).
+
+The B<$dim> parameter asks for an optimization for a specific matrix rank. The parameter is optional and if present
+must be in the range 1..3.
 
 The second constructor accepts a scalar: an object of type B<Math::Matrix> (if that module is installed, otherwise
 it returns a B<Failure>), a B<$direction>, and a B<$flag>; the meaning of the last two parameters is the same as in
