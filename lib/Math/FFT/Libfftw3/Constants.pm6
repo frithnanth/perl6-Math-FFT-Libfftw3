@@ -1,6 +1,6 @@
 use v6;
 
-unit module Math::FFT::Libfftw3::Constants:ver<0.1.2>:auth<cpan:FRITH>;
+unit module Math::FFT::Libfftw3::Constants:ver<0.2.2>:auth<cpan:FRITH>;
 
 constant FFTW_FORWARD         is export = -1;
 constant FFTW_BACKWARD        is export =  1;
@@ -25,7 +25,6 @@ constant NO-DIMS             is export = 3;
 constant FILE-ERROR          is export = 4;
 constant DIMS-ERROR          is export = 5;
 constant KIND-ERROR          is export = 6;
-constant DIM-ERROR           is export = 7;
 
 constant OUT-COMPLEX         is export = 0;
 constant OUT-REIM            is export = 1;

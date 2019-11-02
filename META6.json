@@ -2,7 +2,7 @@
   "perl" : "6",
   "tags" : [ "math", "fft", "nativecall" ],
   "name" : "Math::FFT::Libfftw3",
-  "version" : "0.2.1",
+  "version" : "0.2.2",
   "api" : "2",
   "description" : "Interface to libfftw3",
   "test-depends" : [ "Test" ],

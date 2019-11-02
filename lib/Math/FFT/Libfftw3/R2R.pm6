@@ -6,7 +6,7 @@ use Math::FFT::Libfftw3::Constants;
 use Math::FFT::Libfftw3::Common;
 use Math::FFT::Libfftw3::Exception;
 
-unit class Math::FFT::Libfftw3::R2R:ver<0.1.2>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
+unit class Math::FFT::Libfftw3::R2R:ver<0.2.2>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
 
 has num64     @.out;
 has num64     @!in;
@@ -22,7 +22,7 @@ multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ Int,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :$kind!,
-                 Int :$dim?)
+                 UInt :$dim?)
 {
   # .Array flattens a shaped array since Rakudo 2018.09
   die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
@@ -36,7 +36,7 @@ multi method new(:@data! where @data ~~ Array && @data[0] ~~ Array,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :$kind!,
-                 Int :$dim?)
+                 UInt :$dim?)
 {
   fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
     if @dims.elems == 0;
@@ -49,7 +49,7 @@ multi method new(:@data! where @data !~~ Array || @data.shape[0] ~~ Whatever,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :$kind!,
-                 Int :$dim?)
+                 UInt :$dim?)
 {
   self.bless(:data(@data), :direction($direction), :dims(@dims), :flag($flag), :kind($kind), :dim($dim));
 }
@@ -59,7 +59,7 @@ multi method new(:$data! where .^name eq 'Math::Matrix',
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :$kind!,
-                 Int :$dim?)
+                 UInt :$dim?)
 {
   self.bless(:data($data.list-rows.flat.list), :direction($direction), :dims($data.size), :flag($flag), :kind($kind), :dim($dim));
 }
@@ -69,12 +69,8 @@ submethod BUILD(:@data!,
                 Int :$!direction? = FFTW_FORWARD,
                 Int :$flag? = FFTW_ESTIMATE,
                 :$kind!,
-                 Int :$dim?)
+                UInt :$dim? where { not .defined or $_ ~~ 1..3 })
 {
-  with $dim {
-    fail X::Libfftw3.new: errno => DIM-ERROR, error => 'Wrong plan requested. Try 1..3'
-      unless $dim ~~ 1..3;
-  }
   if $kind !~~ fftw_r2r_kind {
     fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Invalid value for argument kind';
   }

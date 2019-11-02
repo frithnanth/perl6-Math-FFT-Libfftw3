@@ -58,10 +58,7 @@ subtest {
   is-deeply @out2».round(10⁻¹²),
     [21, -3, -3, -3, 1.732050807569, 5.196152422707]».round(10⁻¹²),
     'using FFTW_MEASURE';
-  throws-like
-    { Math::FFT::Libfftw3::R2R.new: data => 1..6, kind => FFTW_R2HC, dim => 8 },
-    X::Libfftw3, message => /Wrong ' ' plan ' ' requested/,
-    'fails if dim not in 1..3';
+  dies-ok { Math::FFT::Libfftw3::R2R.new: data => 1..6, kind => FFTW_R2HC, dim => 8 }, 'dies if dim not in 1..3';
 }, 'Range of Int - 1D transform with specific 1D plan';
 subtest {
   {

@@ -90,10 +90,7 @@ subtest {
      -3e0 + -1.7320508075688772e0i,
      -3e0 + -5.196152422706632e0i]».round(10⁻¹²),
     'using FFTW_MEASURE';
-  throws-like
-    { Math::FFT::Libfftw3::C2C.new: data => 1..6, dim => 8 },
-    X::Libfftw3, message => /Wrong ' ' plan ' ' requested/,
-    'fails if dim not in 1..3';
+  dies-ok { Math::FFT::Libfftw3::C2C.new: data => 1..6, dim => 8 }, 'dies if dim not in 1..3';
 }, 'Range of Int - 1D transform with specific 1D plan';
 subtest {
   {
