@@ -17,7 +17,7 @@ has int32     @.kind;
 has fftw_plan $!plan;
 
 # Shaped Array
-multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ Int,
+multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ UInt,
                  :@dims?,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
@@ -95,7 +95,7 @@ submethod BUILD(:@data!,
       @!dims := CArray[int32].new: @!in.elems;
       $!rank  = 1;
     }
-  } elsif @data ~~ Array && @data.shape[0] ~~ Int {
+  } elsif @data ~~ Array && @data.shape[0] ~~ UInt {
     @!dims := CArray[int32].new: @dims;
     $!rank  = @!dims.elems;
   }
