@@ -84,7 +84,7 @@ sub fftw_plan_guru64_split_dft_c2r(int32 $rank, fftw_iodim64 $dims, int32 $howma
 
 sub fftw_plan_many_r2r(int32 $rank, CArray[int32] $n, int32 $howmany, CArray[num64] $in, CArray[int32] $inembed,
     int32 $istride, int32 $idist, CArray[num64] $out, CArray[int32] $onembed, int32 $ostride, int32 $odist,
-    int32 $kind, uint32 $flags --> fftw_plan) is native(LIB) is export { * }
+    CArray[int32] $kind, uint32 $flags --> fftw_plan) is native(LIB) is export { * }
 sub fftw_plan_r2r(int32 $rank, CArray[int32] $n, CArray[num64] $in, CArray[num64] $out, CArray[int32] $kind,
     uint32 $flags --> fftw_plan) is native(LIB) is export { * }
 sub fftw_plan_r2r_1d(int32 $n, CArray[num64] $in, CArray[num64] $out, int32 $kind, uint32 $flags
