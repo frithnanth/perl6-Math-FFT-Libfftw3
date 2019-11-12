@@ -13,6 +13,16 @@ has num64     @!in;
 has int32     $.rank;
 has int32     @.dims;
 has int32     $.direction;
+has uint32    $.dim;
+has uint32    $.flag;
+has Bool      $.adv     is rw = False;
+has int32     $.howmany is rw;
+has int32     $.istride is rw;
+has int32     $.ostride is rw;
+has int32     $.idist   is rw;
+has int32     $.odist   is rw;
+has int32     @.inembed is rw;
+has int32     @.onembed is rw;
 has fftw_plan $!plan;
 
 # Shaped Array
@@ -110,7 +120,8 @@ submethod BUILD(:@data!,
     @!dims := CArray[int32].new: @dims;
     $!rank  = @!dims.elems;
   }
-  self.plan: $flag;
+  $!dim = $dim if $dim.defined;
+  $!flag = $flag;
 }
 
 submethod DESTROY
@@ -119,15 +130,30 @@ submethod DESTROY
   fftw_cleanup;
 }
 
-method plan(Int $flag, Int $dim? --> Nil)
+# TODO
+#method advanced(Int $rank!, @dims!, Int $howmany!,
+#                @inembed!, Int $istride!, Int $idist!,
+#                @onembed!, Int $ostride!, Int $odist!)
+#{
+#  $!adv      = True;
+#  $!rank     = $rank;
+#  @!dims    := CArray[int32].new: @dims;
+#  $!howmany  = $howmany;
+#  $!istride  = $istride;
+#  $!ostride  = $ostride;
+#  $!idist    = $idist;
+#  $!odist    = $odist;
+#  @!inembed := CArray[int32].new: @inembed;
+#  @!onembed := CArray[int32].new: @onembed;
+#  self;
+#}
+
+multi method plan(Int $flag, $adv where :!so --> Nil)
 {
-  # Create a plan. The FFTW_MEASURE flag destroys the input array; save it.
-  my @savein;
-  @savein := CArray[num64].new: @!in.list if $flag == FFTW_MEASURE;
   if $!direction == FFTW_FORWARD {
-    # The output elems are n₀ × n₁ × … nₙ / 2 - 1
+    # The output elems are n₀ × n₁ × … nₙ / 2 + 1
     @!out := CArray[num64].new: 0e0 xx ((([*] @!dims[0..*-2]) * (@!dims[*-1] / 2 + 1).floor) * 2);
-    given $dim {
+    given $!dim {
       when 1  { $!plan = fftw_plan_dft_r2c_1d(@!dims[0], @!in, @!out, $flag) }
       when 2  { $!plan = fftw_plan_dft_r2c_2d(@!dims[0], @!dims[1], @!in, @!out, $flag) }
       when 3  { $!plan = fftw_plan_dft_r2c_3d(@!dims[0], @!dims[1], @!dims[2], @!in, @!out, $flag) }
@@ -135,18 +161,39 @@ method plan(Int $flag, Int $dim? --> Nil)
     }
   } else {
     @!out := CArray[num64].new: 0e0 xx ([*] @!dims.list);
-    given $dim {
+    given $!dim {
       when 1  { $!plan = fftw_plan_dft_c2r_1d(@!dims[0], @!in, @!out, $flag) }
       when 2  { $!plan = fftw_plan_dft_c2r_2d(@!dims[0], @!dims[1], @!in, @!out, $flag) }
       when 3  { $!plan = fftw_plan_dft_c2r_3d(@!dims[0], @!dims[1], @!dims[2], @!in, @!out, $flag) }
       default { $!plan = fftw_plan_dft_c2r($!rank, @!dims, @!in, @!out, $flag) }
     }
   }
-  @!in := CArray[num64].new: @savein.list if $flag == FFTW_MEASURE;
 }
+
+# TODO
+#multi method plan(Int $flag, $adv where :so --> Nil)
+#{
+#  if $!direction == FFTW_FORWARD {
+#    @!out := CArray[num64].new: 0e0 xx
+#                            ((([*] (@!dims[0..*-2] »*» $!howmany)) * ((@!dims[*-1] »*» $!howmany) / 2 + 1).floor) * 2);
+#    $!plan = fftw_plan_many_dft_r2c(
+#      $!rank, @!dims, $!howmany,
+#      @!in,  @!inembed, $!istride, $!idist,
+#      @!out, @!onembed, $!ostride, $!odist,
+#      $flag);
+#  } else {
+#    @!out := CArray[num64].new: 0e0 xx ([*] (@!dims.list »*» $!howmany));
+#    $!plan = fftw_plan_many_dft_c2r(
+#      $!rank, @!dims, $!howmany,
+#      @!in,  @!inembed, $!istride, $!idist,
+#      @!out, @!onembed, $!ostride, $!odist,
+#      $flag);
+#  }
+#}
 
 method execute(Int :$output? = OUT-COMPLEX --> Positional)
 {
+  self.plan: $!flag, $!adv;
   fftw_execute($!plan);
   given $!direction {
     when FFTW_FORWARD {
@@ -164,28 +211,6 @@ method execute(Int :$output? = OUT-COMPLEX --> Positional)
     }
     when FFTW_BACKWARD {
       return @!out.list »/» [*] @!dims.list; # backward trasforms are not normalized
-    }
-  }
-}
-
-method in(Int :$output? = OUT-COMPLEX --> Positional)
-{
-  given $!direction {
-    when FFTW_FORWARD {
-      return @!in.list;
-    }
-    when FFTW_BACKWARD {
-      given $output {
-        when OUT-COMPLEX {
-          return @!in.map(-> $r, $i { Complex.new($r, $i) }).list;
-        }
-        when OUT-REIM {
-          return @!in.list;
-        }
-        when OUT-NUM {
-          return @!in.list[0,2 … *];
-        }
-      }
     }
   }
 }
@@ -248,7 +273,7 @@ The first constructor accepts any Positional of type Int, Rat, Num, Complex (and
 it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
 
 The only mandatory argument is B<@data>.
-Multidimensional data are expressed in row-major order (see L<C Library Documentation|#clib>) and the array B<@dims>
+Multidimensional data are expressed in row-major order (see L<C Library Documentation>) and the array B<@dims>
 must be passed to the constructor, or the data will be interpreted as a 1D array.
 If one uses a shaped array, there's no need to pass the B<@dims> array, because the dimensions will be read
 from the array itself.
@@ -256,7 +281,7 @@ from the array itself.
 The B<$direction> parameter is used to specify a direct or backward transform; it defaults to FFTW_FORWARD.
 
 The B<$flag> parameter specifies the way the underlying library has to analyze the data in order to create a plan
-for the transform; it defaults to FFTW_ESTIMATE (see L<#Documentation>).
+for the transform; it defaults to FFTW_ESTIMATE (see L<C Library Documentation>).
 
 The B<$dim> parameter asks for an optimization for a specific matrix rank. The parameter is optional and if present
 must be in the range 1..3.
@@ -282,13 +307,6 @@ B<OUT-NUM> makes the C<execute> method return just the real part of the complex 
 When performing the reverse transform, the output array has only real values, so the C<:$output> parameter
 is ignored.
 
-=head2 in(Int :$output? = OUT-COMPLEX --> Positional)
-
-Returns the input array, same options as per the output array.
-
-When performing the direct transform, the input array has only real values, so the C<:$output> parameter
-is ignored.
-
 =head2 Attributes
 
 Some of this class' attributes are readable:
@@ -300,7 +318,7 @@ Some of this class' attributes are readable:
 
 =head2 Wisdom interface
 
-This interface allows to save and load a plan associated to a transform (There are some caveats. See L<#Documentation>).
+This interface allows to save and load a plan associated to a transform (There are some caveats. See L<C Library Documentation>).
 
 =head3 plan-save(Str $filename --> True)
 
@@ -311,7 +329,7 @@ Saves the plan into a file. Returns B<True> if successful and a B<Failure> objec
 Loads the plan from a file. Returns B<True> if successful and a B<Failure> object otherwise.
 
 
-=head1 L<C Library Documentation|#clib>
+=head1 C Library Documentation
 
 For more details on libfftw see L<http://www.fftw.org/>.
 The manual is available here L<http://www.fftw.org/fftw3.pdf>

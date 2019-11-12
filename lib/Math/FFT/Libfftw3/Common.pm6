@@ -7,8 +7,6 @@ use Math::FFT::Libfftw3::Raw;
 use Math::FFT::Libfftw3::Constants;
 use Math::FFT::Libfftw3::Exception;
 
-method execute() { … }
-
 method plan-save(Str $filename --> True)
 {
   fftw_export_wisdom_to_filename($filename) ||

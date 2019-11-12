@@ -6,7 +6,7 @@ use Math::FFT::Libfftw3::Constants;
 use Math::FFT::Libfftw3::Common;
 use Math::FFT::Libfftw3::Exception;
 
-unit class Math::FFT::Libfftw3::R2R:ver<0.2.2>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
+unit class Math::FFT::Libfftw3::R2R:ver<0.3.1>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
 
 has num64     @.out;
 has num64     @!in;
@@ -14,6 +14,17 @@ has int32     $.rank;
 has int32     @.dims;
 has int32     $.direction;
 has int32     @.kind;
+has uint32    $.dim;
+has uint32    $.flag;
+has int32     $.ikind;
+has Bool      $.adv     is rw = False;
+has int32     $.howmany is rw;
+has int32     $.istride is rw;
+has int32     $.ostride is rw;
+has int32     $.idist   is rw;
+has int32     $.odist   is rw;
+has int32     @.inembed is rw;
+has int32     @.onembed is rw;
 has fftw_plan $!plan;
 
 # Shaped Array
@@ -99,7 +110,9 @@ submethod BUILD(:@data!,
     @!dims := CArray[int32].new: @dims;
     $!rank  = @!dims.elems;
   }
-  self.plan: $flag, $kind, $dim;
+  $!dim = $dim if $dim.defined;
+  $!flag = $flag;
+  $!ikind = $kind;
 }
 
 submethod DESTROY
@@ -108,25 +121,49 @@ submethod DESTROY
   fftw_cleanup;
 }
 
-method plan(Int $flag, $kind, Int $dim? --> Nil)
+method advanced(Int $rank!, @dims!, Int $howmany!,
+                @inembed!, Int $istride!, Int $idist!,
+                @onembed!, Int $ostride!, Int $odist!)
 {
-  # Create a plan. The FFTW_MEASURE flag destroys the input array; save it.
-  my @savein;
-  @savein := CArray[num64].new: @!in.list if $flag == FFTW_MEASURE;
+  $!adv      = True;
+  $!rank     = $rank;
+  @!dims    := CArray[int32].new: @dims;
+  $!howmany  = $howmany;
+  $!istride  = $istride;
+  $!ostride  = $ostride;
+  $!idist    = $idist;
+  $!odist    = $odist;
+  @!inembed := CArray[int32].new: @inembed;
+  @!onembed := CArray[int32].new: @onembed;
+  self;
+}
+
+multi method plan(Int $flag, $kind, $adv where :!so --> Nil)
+{
   @!kind  := CArray[int32].new: $kind xx $!rank;
   @!out   := CArray[num64].new: 0e0 xx @!in.list.elems;
-  given $dim {
+  given $!dim {
     when 1  { $!plan = fftw_plan_r2r_1d(@!dims[0], @!in, @!out, @!kind[0], $flag) }
     when 2  { $!plan = fftw_plan_r2r_2d(@!dims[0], @!dims[1], @!in, @!out, @!kind[0], @!kind[1], $flag) }
     when 3  { $!plan = fftw_plan_r2r_3d(@!dims[0], @!dims[1], @!dims[2], @!in, @!out, @!kind[0], @!kind[1], @!kind[2], $flag) }
     default { $!plan = fftw_plan_r2r($!rank, @!dims, @!in, @!out, @!kind, $flag) }
   }
-  @!in    := CArray[num64].new: @savein.list if $flag == FFTW_MEASURE;
 }
 
+multi method plan(Int $flag, $kind, $adv where :so --> Nil)
+{
+  @!kind := CArray[int32].new: $kind xx $!rank;
+  @!out  := CArray[num64].new: 0e0 xx @!in.list.elems;
+  $!plan  = fftw_plan_many_r2r(
+    $!rank, @!dims, $!howmany,
+    @!in,  @!inembed, $!istride, $!idist,
+    @!out, @!onembed, $!ostride, $!odist,
+    @!kind, $flag);
+}
 
 method execute(--> Positional)
 {
+  self.plan: $!flag, $!ikind, $!adv;
   fftw_execute($!plan);
   given @!kind[0] {
     when FFTW_R2HC {
@@ -160,11 +197,6 @@ method execute(--> Positional)
       fail X::Libfftw3.new: errno => KIND-ERROR, error => 'Wrong value for the @kind argument';
     }
   }
-}
-
-method in(--> Positional)
-{
-  return @!in.list;
 }
 
 =begin pod
@@ -226,7 +258,7 @@ The first constructor accepts any Positional of type Int, Rat, Num (and IntStr, 
 it allows List of Ints, Seq of Rat, shaped arrays of any base type, etc.
 
 The only mandatory argument are B<@data> and B<$kind>.
-Multidimensional data are expressed in row-major order (see L<C Library Documentation|#clib>) and the array B<@dims>
+Multidimensional data are expressed in row-major order (see L<C Library Documentation>) and the array B<@dims>
 must be passed to the constructor, or the data will be interpreted as a 1D array.
 If one uses a shaped array, there's no need to pass the B<@dims> array, because the dimensions will be read
 from the array itself.
@@ -253,7 +285,7 @@ The reverse transform of FFTW_R*DFT10 is FFTW_R*DFT01 and vice versa, of FFTW_R*
 and of FFTW_R*DFT00 is FFTW_R*DFT00.
 
 The B<$flag> parameter specifies the way the underlying library has to analyze the data in order to create a plan
-for the transform; it defaults to FFTW_ESTIMATE (see L<#Documentation>).
+for the transform; it defaults to FFTW_ESTIMATE (see L<C Library Documentation>).
 
 The B<$dim> parameter asks for an optimization for a specific matrix rank. The parameter is optional and if present
 must be in the range 1..3.
@@ -266,10 +298,6 @@ the meaning of the last two parameters is the same as in the other constructor.
 
 Executes the transform and returns the output array of values as a normalized row-major array.
 
-=head2 in(--> Positional)
-
-Returns the input array.
-
 =head2 Attributes
 
 Some of this class' attributes are readable:
@@ -278,10 +306,21 @@ Some of this class' attributes are readable:
 =item $.rank
 =item @.dims
 =item $.direction
+=item @.kind
+=item $.dim (used when a specialized tranform has been requested)
+=item $.flag (how to compute a plan)
+=item $.adv (normal or advanced interface)
+=item $.howmany (only for the advanced interface)
+=item $.istride (only for the advanced interface)
+=item $.ostride (only for the advanced interface)
+=item $.idist   (only for the advanced interface)
+=item $.odist   (only for the advanced interface)
+=item @.inembed (only for the advanced interface)
+=item @.onembed (only for the advanced interface)
 
 =head2 Wisdom interface
 
-This interface allows to save and load a plan associated to a transform (There are some caveats. See L<#Documentation>).
+This interface allows to save and load a plan associated to a transform (There are some caveats. See L<C Library Documentation>).
 
 =head3 plan-save(Str $filename --> True)
 
@@ -291,8 +330,27 @@ Saves the plan into a file. Returns B<True> if successful and a B<Failure> objec
 
 Loads the plan from a file. Returns B<True> if successful and a B<Failure> object otherwise.
 
+=head2 Advanced interface
 
-=head1 L<C Library Documentation|#clib>
+This interface allows to compose several transformations in one pass.
+See L<C Library Documentation>.
+
+=head3 advanced(Int $rank!, @dims!, Int $howmany!, @inembed!, Int $istride!, Int $idist!, @onembed!, Int $ostride!, Int $odist!)
+
+This method activates the advanced interface. The meaning of the arguments are detailed in the
+L<C Library Documentation>.
+
+This method returns `self`, so it can be concatenated to the `.new()` method:
+
+=begin code
+my $fft = Math::FFT::Libfftw3::R2R.new(data => 1..30)
+                                  .advanced: $rank, @dims, $howmany,
+                                             @inembed, $istride, $idist,
+                                             @onembed, $ostride, $odist;
+=end code
+
+
+=head1 C Library Documentation
 
 For more details on libfftw see L<http://www.fftw.org/>.
 The manual is available here L<http://www.fftw.org/fftw3.pdf>
@@ -339,7 +397,7 @@ array to the C<new> method using C«$*PERL.compiler.version < v2018.09» results
 There are some caveats regarding the way the various kind of R2R 1-dimensional transforms are computed and
 their performances, and how the n-dimensional transforms are computed and why is probably a better idea to
 use the R2C-C2R transform in case of multi-dimensional transforms.
-Please refer to the documentation of the L<C Library Documentation|#clib>.
+Please refer to the documentation of the L<C Library Documentation>.
 
 =head1 Author
 

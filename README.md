@@ -59,7 +59,7 @@ The first constructor accepts any Positional of type Int, Rat, Num, Complex (and
 it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
 
 The only mandatory argument is **@data**.
-Multidimensional data are expressed in row-major order (see the [C Library Documentation](#clib))
+Multidimensional data are expressed in row-major order (see the [C Library Documentation](#c-library-documentation))
 and the array **@dims** must be passed to the constructor, or the data will be interpreted as a 1D array.
 If one uses a shaped array, there's no need to pass the **@dims** array, because the dimensions will be read
 from the array itself.
@@ -67,7 +67,7 @@ from the array itself.
 The **$direction** parameter is used to specify a direct or backward transform; it defaults to `FFTW_FORWARD`.
 
 The **$flag** parameter specifies the way the underlying library has to analyze the data in order to create a plan
-for the transform; it defaults to `FFTW_ESTIMATE` (see the [C Library Documentation](#clib)).
+for the transform; it defaults to `FFTW_ESTIMATE` (see the [C Library Documentation](#c-library-documentation)).
 
 The second constructor accepts a scalar: an object of type **Math::Matrix** (if that module is installed, otherwise
 it returns a **Failure**), a **$direction**, and a **$flag**; the meaning of the last two parameters is the same as
@@ -87,11 +87,6 @@ The default (**OUT-COMPLEX**) is to return an array of Complex.
 real/imaginary values.
 **OUT-NUM** makes the `execute` method return just the real part of the complex values.
 
-#### in(Int :$output? = OUT-COMPLEX --> Positional)
-
-Returns the input array, same options as per the output array.
-
-
 #### Attributes
 
 Some of this class' attributes are readable:
@@ -100,11 +95,22 @@ Some of this class' attributes are readable:
 * $.rank
 * @.dims
 * $.direction
+* @.kind (available only in the R2R transform)
+* $.dim (used when a specialized tranform has been requested)
+* $.flag (how to compute a plan)
+* $.adv (normal or advanced interface)
+* $.howmany (only for the advanced interface)
+* $.istride (only for the advanced interface)
+* $.ostride (only for the advanced interface)
+* $.idist   (only for the advanced interface)
+* $.odist   (only for the advanced interface)
+* @.inembed (only for the advanced interface)
+* @.onembed (only for the advanced interface)
 
 #### Wisdom interface
 
 This interface allows to save and load a plan associated to a transform (There are some caveats.
-See [C Library Documentation](#clib)).
+See [C Library Documentation](#c-library-documentation)).
 
 ##### plan-save(Str $filename --> True)
 
@@ -114,6 +120,25 @@ Saves the plan into a file. Returns **True** if successful and a **Failure** obj
 
 Loads the plan From a file. Returns **True** if successful and a **Failure** object otherwise.
 
+#### Advanced interface
+
+This interface allows to compose several transformations in one pass.
+See [C Library Documentation](#c-library-documentation).
+
+##### advanced(Int $rank!, @dims!, Int $howmany!, @inembed!, Int $istride!, Int $idist!, @onembed!, Int $ostride!, Int $odist!)
+
+This method activates the advanced interface. The meaning of the arguments are detailed in the
+[C Library Documentation](#c-library-documentation).
+
+This method returns `self`, so it can be concatenated to the `.new()` method:
+
+```perl6
+my $fft = Math::FFT::Libfftw3::C2C.new(data => (1..30).flat)
+                                  .advanced: $rank, @dims, $howmany,
+                                             @inembed, $istride, $idist,
+                                             @onembed, $ostride, $odist;
+```
+
 ### Math::FFT::Libfftw3::R2C Real-to-Complex transform
 
 The interface for the R2C transform is slightly different.
@@ -121,7 +146,6 @@ The interface for the R2C transform is slightly different.
 In particular:
 
 * in the `execute` method, when performing the reverse transform, the output array has only real values, so the `:$output` parameter is ignored.
-* in the `in` method, when performing the direct transform, the input array has only real values, so the `:$output` parameter is ignored.
 
 See the `pod` documentation inside the module for further details.
 
