@@ -117,7 +117,6 @@ submethod BUILD(:@data!,
 
 submethod DESTROY
 {
-  fftw_destroy_plan($!plan) with $!plan;
   fftw_cleanup;
 }
 
@@ -165,6 +164,7 @@ method execute(--> Positional)
 {
   self.plan: $!flag, $!ikind, $!adv;
   fftw_execute($!plan);
+  fftw_destroy_plan($!plan) with $!plan;
   given @!kind[0] {
     when FFTW_R2HC {
       return @!out.list;

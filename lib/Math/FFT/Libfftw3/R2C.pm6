@@ -126,7 +126,6 @@ submethod BUILD(:@data!,
 
 submethod DESTROY
 {
-  fftw_destroy_plan($!plan) with $!plan;
   fftw_cleanup;
 }
 
@@ -195,6 +194,7 @@ method execute(Int :$output? = OUT-COMPLEX --> Positional)
 {
   self.plan: $!flag, $!adv;
   fftw_execute($!plan);
+  fftw_destroy_plan($!plan) with $!plan;
   given $!direction {
     when FFTW_FORWARD {
       given $output {
