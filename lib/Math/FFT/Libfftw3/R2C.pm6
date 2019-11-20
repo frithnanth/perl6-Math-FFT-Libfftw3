@@ -6,7 +6,7 @@ use Math::FFT::Libfftw3::Constants;
 use Math::FFT::Libfftw3::Common;
 use Math::FFT::Libfftw3::Exception;
 
-unit class Math::FFT::Libfftw3::R2C:ver<0.2.2>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
+unit class Math::FFT::Libfftw3::R2C:ver<0.3.2>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
 
 has num64     @.out;
 has num64     @!in;
@@ -129,29 +129,27 @@ submethod DESTROY
   fftw_cleanup;
 }
 
-# TODO
-#method advanced(Int $rank!, @dims!, Int $howmany!,
-#                @inembed!, Int $istride!, Int $idist!,
-#                @onembed!, Int $ostride!, Int $odist!)
-#{
-#  $!adv      = True;
-#  $!rank     = $rank;
-#  @!dims    := CArray[int32].new: @dims;
-#  $!howmany  = $howmany;
-#  $!istride  = $istride;
-#  $!ostride  = $ostride;
-#  $!idist    = $idist;
-#  $!odist    = $odist;
-#  @!inembed := CArray[int32].new: @inembed;
-#  @!onembed := CArray[int32].new: @onembed;
-#  self;
-#}
+method advanced(Int $rank!, @dims!, Int $howmany!,
+                @inembed!, Int $istride!, Int $idist!,
+                @onembed!, Int $ostride!, Int $odist!)
+{
+  $!adv      = True;
+  $!rank     = $rank;
+  @!dims    := CArray[int32].new: @dims;
+  $!howmany  = $howmany;
+  $!istride  = $istride;
+  $!ostride  = $ostride;
+  $!idist    = $idist;
+  $!odist    = $odist;
+  @!inembed := CArray[int32].new: @inembed;
+  @!onembed := CArray[int32].new: @onembed;
+  self;
+}
 
 multi method plan(Int $flag, $adv where :!so --> Nil)
 {
   if $!direction == FFTW_FORWARD {
-    # The output elems are n₀ × n₁ × … nₙ / 2 + 1
-    @!out := CArray[num64].new: 0e0 xx ((([*] @!dims[0..*-2]) * (@!dims[*-1] / 2 + 1).floor) * 2);
+    @!out := CArray[num64].new: 0e0 xx (@!in.elems * 2);
     given $!dim {
       when 1  { $!plan = fftw_plan_dft_r2c_1d(@!dims[0], @!in, @!out, $flag) }
       when 2  { $!plan = fftw_plan_dft_r2c_2d(@!dims[0], @!dims[1], @!in, @!out, $flag) }
@@ -169,26 +167,24 @@ multi method plan(Int $flag, $adv where :!so --> Nil)
   }
 }
 
-# TODO
-#multi method plan(Int $flag, $adv where :so --> Nil)
-#{
-#  if $!direction == FFTW_FORWARD {
-#    @!out := CArray[num64].new: 0e0 xx
-#                            ((([*] (@!dims[0..*-2] »*» $!howmany)) * ((@!dims[*-1] »*» $!howmany) / 2 + 1).floor) * 2);
-#    $!plan = fftw_plan_many_dft_r2c(
-#      $!rank, @!dims, $!howmany,
-#      @!in,  @!inembed, $!istride, $!idist,
-#      @!out, @!onembed, $!ostride, $!odist,
-#      $flag);
-#  } else {
-#    @!out := CArray[num64].new: 0e0 xx ([*] (@!dims.list »*» $!howmany));
-#    $!plan = fftw_plan_many_dft_c2r(
-#      $!rank, @!dims, $!howmany,
-#      @!in,  @!inembed, $!istride, $!idist,
-#      @!out, @!onembed, $!ostride, $!odist,
-#      $flag);
-#  }
-#}
+multi method plan(Int $flag, $adv where :so --> Nil)
+{
+  if $!direction == FFTW_FORWARD {
+    @!out := CArray[num64].new: 0e0 xx @!in.elems * 2;
+    $!plan = fftw_plan_many_dft_r2c(
+      $!rank, @!dims, $!howmany,
+      @!in,  @!inembed, $!istride, $!idist,
+      @!out, @!onembed, $!ostride, $!odist,
+      $flag);
+  } else {
+    @!out := CArray[num64].new: 0e0 xx ([*] (@!dims.list »*» $!howmany));
+    $!plan = fftw_plan_many_dft_c2r(
+      $!rank, @!dims, $!howmany,
+      @!in,  @!inembed, $!istride, $!idist,
+      @!out, @!onembed, $!ostride, $!odist,
+      $flag);
+  }
+}
 
 method execute(Int :$output? = OUT-COMPLEX --> Positional)
 {
@@ -327,6 +323,25 @@ Saves the plan into a file. Returns B<True> if successful and a B<Failure> objec
 =head3 plan-load(Str $filename --> True)
 
 Loads the plan from a file. Returns B<True> if successful and a B<Failure> object otherwise.
+
+=head2 Advanced interface
+
+This interface allows to compose several transformations in one pass.
+See L<C Library Documentation>.
+
+=head3 advanced(Int $rank!, @dims!, Int $howmany!, @inembed!, Int $istride!, Int $idist!, @onembed!, Int $ostride!, Int $odist!)
+
+This method activates the advanced interface. The meaning of the arguments are detailed in the
+L<C Library Documentation>.
+
+This method returns B<self>, so it can be concatenated to the B<.new()> method:
+
+=begin code
+my $fft = Math::FFT::Libfftw3::R2C.new(data => (1..30).flat)
+                                  .advanced: $rank, @dims, $howmany,
+                                             @inembed, $istride, $idist,
+                                             @onembed, $ostride, $odist;
+=end code
 
 
 =head1 C Library Documentation

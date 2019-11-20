@@ -160,7 +160,7 @@ subtest {
     (1.0, 2.0 … 30.0),
     'inverse transform';
   fftw_destroy_plan($planr);
-}, 'c2c advanced transform - trasform each column of a 2d array';
+}, 'c2c advanced transform - trasform each column of a 2d 10x3 array';
 
 subtest {
   my $rank = 2;
@@ -201,7 +201,49 @@ subtest {
     (1.0, 2.0 … 30.0),
     'inverse transform';
   fftw_destroy_plan($planr);
-}, 'r2c & c2r advanced transform';
+}, 'r2c & c2r advanced transform - one array contiguous in memory';
+
+subtest {
+  my $rank = 1;
+  my $n = CArray[int32].new: 10;
+  my $howmany = 3;
+  my $in = CArray[num64].new: (1e0, 2e0 … 30e0);
+  my $out = CArray[num64].allocate(45);
+  my $inembed := $n;
+  my $onembed := $n;
+  my $istride = 3;  # distance between two elements in the same column
+  my $ostride = 3;
+  my $idist = 1;
+  my $odist = 1;
+  my fftw_plan $pland = fftw_plan_many_dft_r2c(
+    $rank, $n, $howmany,
+    $in,  $inembed, $istride, $idist,
+    $out, $onembed, $ostride, $odist,
+    FFTW_ESTIMATE
+  );
+  isa-ok $pland, fftw_plan, 'create plan';
+  lives-ok { fftw_execute($pland) }, 'execute plan';
+  is-deeply $out.list».round(10⁻¹²),
+    (145.0, 0.0, 155.0, 0.0, 165.0, 0.0, -15.0, 46.165253057629, -15.0, 46.165253057629, -15.0,
+     46.165253057629, -15.0, 20.645728807068, -15.0, 20.645728807068, -15.0, 20.645728807068,
+     -15.0, 10.89813792008, -15.0, 10.89813792008, -15.0, 10.89813792008, -15.0, 4.873795443494,
+     -15.0, 4.873795443494, -15.0, 4.873795443494, -15.0, 0.0, -15.0, 0.0, -15.0, 0.0, 0.0, 0.0,
+     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)».round(10⁻¹²),
+    'direct transform';
+  fftw_destroy_plan($pland);
+  my $back = CArray[num64].allocate(30);
+  my fftw_plan $planr = fftw_plan_many_dft_c2r(
+    $rank, $n, $howmany,
+    $out,  $onembed, $ostride, $odist,
+    $back, $inembed, $istride, $idist,
+    FFTW_ESTIMATE
+  );
+  fftw_execute($planr);
+  is-deeply ($back.list »/» 10)[^30]».round(10⁻¹²),
+    (1.0, 2.0 … 30.0),
+    'inverse transform';
+  fftw_destroy_plan($planr);
+}, 'r2c & c2r advanced transform - trasform each column of a 2d 10x3 array';
 
 subtest {
   my $rank = 2;
