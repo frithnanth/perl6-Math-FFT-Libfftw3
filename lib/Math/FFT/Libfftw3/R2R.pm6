@@ -6,7 +6,7 @@ use Math::FFT::Libfftw3::Constants;
 use Math::FFT::Libfftw3::Common;
 use Math::FFT::Libfftw3::Exception;
 
-unit class Math::FFT::Libfftw3::R2R:ver<0.3.1>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
+unit class Math::FFT::Libfftw3::R2R:ver<0.3.2>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
 
 has num64     @.out;
 has num64     @!in;
@@ -117,7 +117,6 @@ submethod BUILD(:@data!,
 
 submethod DESTROY
 {
-  fftw_destroy_plan($!plan) with $!plan;
   fftw_cleanup;
 }
 
@@ -165,6 +164,7 @@ method execute(--> Positional)
 {
   self.plan: $!flag, $!ikind, $!adv;
   fftw_execute($!plan);
+  fftw_destroy_plan($!plan) with $!plan;
   given @!kind[0] {
     when FFTW_R2HC {
       return @!out.list;
@@ -340,7 +340,7 @@ See L<C Library Documentation>.
 This method activates the advanced interface. The meaning of the arguments are detailed in the
 L<C Library Documentation>.
 
-This method returns `self`, so it can be concatenated to the `.new()` method:
+This method returns B<self>, so it can be concatenated to the B<.new()> method:
 
 =begin code
 my $fft = Math::FFT::Libfftw3::R2R.new(data => 1..30)
