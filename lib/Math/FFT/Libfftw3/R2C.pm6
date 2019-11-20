@@ -149,7 +149,8 @@ method advanced(Int $rank!, @dims!, Int $howmany!,
 multi method plan(Int $flag, $adv where :!so --> Nil)
 {
   if $!direction == FFTW_FORWARD {
-    @!out := CArray[num64].new: 0e0 xx (@!in.elems * 2);
+    # The output elems are n₀ × n₁ × … nₙ / 2 + 1
+    @!out := CArray[num64].new: 0e0 xx ((([*] @!dims[0..*-2]) * (@!dims[*-1] / 2 + 1).floor) * 2);
     given $!dim {
       when 1  { $!plan = fftw_plan_dft_r2c_1d(@!dims[0], @!in, @!out, $flag) }
       when 2  { $!plan = fftw_plan_dft_r2c_2d(@!dims[0], @!dims[1], @!in, @!out, $flag) }
