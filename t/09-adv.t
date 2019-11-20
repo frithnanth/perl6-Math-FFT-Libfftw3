@@ -46,29 +46,34 @@ subtest {
   is-deeply @outr».round(10⁻¹²), [(1.0, 2.0 … 30.0).flat], 'inverse transform';
 }, 'C2C transform - advanced interface';
 
-#subtest {
-#  my $fft = Math::FFT::Libfftw3::R2C.new(data => (1..30).flat)
-#                                    .advanced: $rank, @dims, $howmany,
-#                                               @inembed, $istride, $idist,
-#                                               @onembed, $ostride, $odist;
-#  isa-ok $fft, Math::FFT::Libfftw3::R2C, 'object type';
-#  my @out;
-#  $fft.plan: $fft.flag, $fft.adv;
-#  lives-ok { @out = $fft.execute }, 'execute transform';
-#  is-deeply @out».round(10⁻¹²),
-#    [145+0i, 155+0i, 165+0i,
-#     -15+46.1652530576288i, -15+46.1652530576288i, -15+46.1652530576288i,
-#     -15+20.645728807067602i, -15+20.645728807067602i, -15+20.645728807067602i,
-#     -15+10.898137920080412i, -15+10.898137920080412i, -15+10.898137920080412i,
-#     -15+4.873795443493596i, -15+4.873795443493596i, -15+4.873795443493596i, -15+0i]».round(10⁻¹²),
-#    'direct transform';
-#  my $fftr = Math::FFT::Libfftw3::R2C.new(data => @out, direction => FFTW_BACKWARD)
-#                                     .advanced: $rank, @dims, $howmany,
-#                                                @inembed, $istride, $idist,
-#                                                @onembed, $ostride, $odist;
-#  my @outr = $fftr.execute: output => OUT-NUM;
-#  is-deeply @outr».round(10⁻¹²), [(1.0, 2.0 … 30.0).flat], 'inverse transform';
-#}, 'R2C transform - advanced interface';
+subtest {
+  my $fft = Math::FFT::Libfftw3::R2C.new(data => (1..30).flat)
+                                    .advanced: $rank, @dims, $howmany,
+                                               @inembed, $istride, $idist,
+                                               @onembed, $ostride, $odist;
+  isa-ok $fft, Math::FFT::Libfftw3::R2C, 'object type';
+  my @out;
+  $fft.plan: $fft.flag, $fft.adv;
+  lives-ok { @out = $fft.execute }, 'execute transform';
+  is-deeply @out».round(10⁻¹²),
+    [145+0i, 155+0i, 165+0i,
+     -15+46.1652530576288i, -15+46.1652530576288i, -15+46.1652530576288i,
+     -15+20.645728807067602i, -15+20.645728807067602i, -15+20.645728807067602i,
+     -15+10.898137920080412i, -15+10.898137920080412i, -15+10.898137920080412i,
+     -15+4.873795443493596i, -15+4.873795443493596i, -15+4.873795443493596i,
+     -15+0i, -15+0i, -15+0i,
+     0+0i, 0+0i, 0+0i,
+     0+0i, 0+0i, 0+0i,
+     0+0i, 0+0i, 0+0i,
+     0+0i, 0+0i, 0+0i]».round(10⁻¹²),
+    'direct transform';
+  my $fftr = Math::FFT::Libfftw3::R2C.new(data => @out, direction => FFTW_BACKWARD)
+                                     .advanced: $rank, @dims, $howmany,
+                                                @onembed, $ostride, $odist,
+                                                @inembed, $istride, $idist;
+  my @outr = $fftr.execute: output => OUT-NUM;
+  is-deeply @outr».round(10⁻¹²), [(1.0, 2.0 … 30.0).flat], 'inverse transform';
+}, 'R2C transform - advanced interface';
 
 subtest {
   my $fft = Math::FFT::Libfftw3::R2R.new(data => 1..30, kind => FFTW_R2HC)
