@@ -1,6 +1,6 @@
 use v6;
 
-unit role Math::FFT::Libfftw3::FFTRole;
+unit role Math::FFT::Libfftw3::FFTRole:ver<0.3.3>:auth<cpan:FRITH>;
 
 use NativeCall;
 use Math::FFT::Libfftw3::Raw;
