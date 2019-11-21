@@ -204,7 +204,7 @@ array to the `new` method using `$*PERL.compiler.version < v2018.09` results in 
 There are some alternative interface to implement:
 
 * The *guru* interface to apply the same plan to different data.
-* The *multi-threaded* interface, which supports parallel one- and multi-dimensional transforms.
+* The *multi-threaded* interface, which supports parallel one- and multi-dimensional transforms. (raw interface implemented)
 * The *distributed-memory* interface, for parallel systems supporting the MPI message-passing interface.
 
 ## Author

@@ -1,11 +1,13 @@
 use v6;
 
-unit module Math::FFT::Libfftw3::Raw:ver<0.3.1>:auth<cpan:FRITH>;
+unit module Math::FFT::Libfftw3::Raw:ver<0.3.3>:auth<cpan:FRITH>;
 
 use NativeCall;
 use Math::FFT::Libfftw3::Constants;
 
-constant LIB = ('fftw3', v3);
+constant LIB  = ('fftw3', v3);
+constant TLIB = ('fftw3_threads', v3);
+constant OLIB = ('fftw3_omp', v3);
 
 class fftw_plan    is repr('CPointer') is export { * } # libfftw3 private struct
 class fftw_iodim   is repr('CPointer') is export { * } # libfftw3 private struct
@@ -118,10 +120,16 @@ sub fftw_forget_wisdom() is native(LIB) is export { * }
 sub fftw_cleanup() is native(LIB) is export { * }
 sub fftw_set_timelimit(num64 $t) is native(LIB) is export { * }
 
-sub fftw_plan_with_nthreads(int32 $nthreads) is native(LIB) is export { * }
-sub fftw_init_threads(--> int32) is native(LIB) is export { * }
-sub fftw_cleanup_threads() is native(LIB) is export { * }
-sub fftw_make_planner_thread_safe() is native(LIB) is export { * }
+sub fftw_tinit_threads(--> int32) is native(TLIB) is symbol('fftw_init_threads') is export { * }
+sub fftw_tplan_with_nthreads(int32 $nthreads) is symbol('fftw_plan_with_nthreads') is native(TLIB) is export { * }
+sub fftw_tmake_planner_thread_safe() is native(TLIB) is symbol('fftw_make_planner_thread_safe') is export { * }
+sub fftw_tcleanup_threads() is native(TLIB) is symbol('fftw_cleanup_threads') is export { * }
+
+sub fftw_oinit_threads(--> int32) is symbol('fftw_init_threads') is native(OLIB) is export { * }
+sub fftw_oplan_with_nthreads(int32 $nthreads) is symbol('fftw_plan_with_nthreads') is native(OLIB) is export { * }
+sub fftw_omake_planner_thread_safe() is symbol('fftw_make_planner_thread_safe') is native(OLIB) is export { * }
+sub fftw_ocleanup_threads() is symbol('fftw_cleanup_threads') is native(OLIB) is export { * }
+
 sub fftw_export_wisdom_to_filename(Str $filename --> int32) is native(LIB) is export { * }
 sub fftw_export_wisdom_to_string(--> Str) is native(LIB) is export { * }
 sub fftw_import_system_wisdom(--> int32) is native(LIB) is export { * }
