@@ -1,6 +1,6 @@
 use v6;
 
-unit module Math::FFT::Libfftw3::Constants:ver<0.3.1>:auth<cpan:FRITH>;
+unit module Math::FFT::Libfftw3::Constants:ver<0.3.3>:auth<cpan:FRITH>;
 
 constant FFTW_FORWARD         is export = -1;
 constant FFTW_BACKWARD        is export =  1;
@@ -29,3 +29,5 @@ constant KIND-ERROR          is export = 6;
 constant OUT-COMPLEX         is export = 0;
 constant OUT-REIM            is export = 1;
 constant OUT-NUM             is export = 2;
+
+enum thread-type is export <NONE THREAD OPENMP>;

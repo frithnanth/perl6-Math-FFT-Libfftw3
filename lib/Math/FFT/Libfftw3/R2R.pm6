@@ -6,7 +6,7 @@ use Math::FFT::Libfftw3::Constants;
 use Math::FFT::Libfftw3::Common;
 use Math::FFT::Libfftw3::Exception;
 
-unit class Math::FFT::Libfftw3::R2R:ver<0.3.2>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
+unit class Math::FFT::Libfftw3::R2R:ver<0.3.3>:auth<cpan:FRITH> does Math::FFT::Libfftw3::FFTRole;
 
 has num64     @.out;
 has num64     @!in;
@@ -25,6 +25,7 @@ has int32     $.idist   is rw;
 has int32     $.odist   is rw;
 has int32     @.inembed is rw;
 has int32     @.onembed is rw;
+has Int       $.thread;
 has fftw_plan $!plan;
 
 # Shaped Array
@@ -33,12 +34,21 @@ multi method new(:@data! where @data ~~ Array && @data.shape[0] ~~ UInt,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :$kind!,
-                 UInt :$dim?)
+                 UInt :$dim?,
+                 Int  :$thread? = NONE,
+                 Int  :$nthreads? = 1)
 {
   # .Array flattens a shaped array since Rakudo 2018.09
   die 'This module needs at least Rakudo v2018.09 in order to use shaped arrays'
     if $*PERL.compiler.version < v2018.09;
-  self.bless(:data(@data.Array), :direction($direction), :dims(@data.shape), :flag($flag), :kind($kind), :dim($dim));
+  self.bless(:data(@data.Array),
+             :direction($direction),
+             :dims(@data.shape),
+             :flag($flag),
+             :kind($kind),
+             :dim($dim),
+             :thread($thread),
+             :nthreads($nthreads));
 }
 
 # Array of arrays
@@ -47,11 +57,20 @@ multi method new(:@data! where @data ~~ Array && @data[0] ~~ Array,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :$kind!,
-                 UInt :$dim?)
+                 UInt :$dim?,
+                 Int  :$thread? = NONE,
+                 Int  :$nthreads? = 1)
 {
   fail X::Libfftw3.new: errno => NO-DIMS, error => 'Array of arrays: you must specify the dims array'
     if @dims.elems == 0;
-  self.bless(:data(do { gather @data.deepmap(*.take) }), :direction($direction), :dims(@dims), :flag($flag), :kind($kind), :dim($dim));
+  self.bless(:data(do { gather @data.deepmap(*.take) }),
+             :direction($direction)
+             :dims(@dims)
+             :flag($flag)
+             :kind($kind)
+             :dim($dim),
+             :thread($thread),
+             :nthreads($nthreads));
 }
 
 # Plain array or Positional
@@ -60,9 +79,18 @@ multi method new(:@data! where @data !~~ Array || @data.shape[0] ~~ Whatever,
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :$kind!,
-                 UInt :$dim?)
+                 UInt :$dim?,
+                 Int  :$thread? = NONE,
+                 Int  :$nthreads? = 1)
 {
-  self.bless(:data(@data), :direction($direction), :dims(@dims), :flag($flag), :kind($kind), :dim($dim));
+  self.bless(:data(@data),
+             :direction($direction),
+             :dims(@dims),
+             :flag($flag),
+             :kind($kind),
+             :dim($dim),
+             :thread($thread),
+             :nthreads($nthreads));
 }
 
 # Math::Matrix object
@@ -70,17 +98,28 @@ multi method new(:$data! where .^name eq 'Math::Matrix',
                  Int :$direction? = FFTW_FORWARD,
                  Int :$flag? = FFTW_ESTIMATE,
                  :$kind!,
-                 UInt :$dim?)
+                 UInt :$dim?,
+                 Int  :$thread? = NONE,
+                 Int  :$nthreads? = 1)
 {
-  self.bless(:data($data.list-rows.flat.list), :direction($direction), :dims($data.size), :flag($flag), :kind($kind), :dim($dim));
+  self.bless(:data($data.list-rows.flat.list),
+             :direction($direction),
+             :dims($data.size),
+             :flag($flag),
+             :kind($kind),
+             :dim($dim),
+             :thread($thread),
+             :nthreads($nthreads));
 }
 
 submethod BUILD(:@data!,
                 :@dims?,
-                Int :$!direction? = FFTW_FORWARD,
-                Int :$flag? = FFTW_ESTIMATE,
+                Int  :$!direction? = FFTW_FORWARD,
+                Int  :$flag? = FFTW_ESTIMATE,
                 :$kind!,
-                UInt :$dim? where { not .defined or $_ ~~ 1..3 })
+                UInt :$dim? where { not .defined or $_ ~~ 1..3 },
+                Int  :$thread? where thread-type = NONE,
+                Int  :$nthreads? = 1)
 {
   if $kind !~~ fftw_r2r_kind {
     fail X::Libfftw3.new: errno => TYPE-ERROR, error => 'Invalid value for argument kind';
@@ -110,14 +149,29 @@ submethod BUILD(:@data!,
     @!dims := CArray[int32].new: @dims;
     $!rank  = @!dims.elems;
   }
-  $!dim = $dim if $dim.defined;
-  $!flag = $flag;
-  $!ikind = $kind;
+  $!dim    = $dim if $dim.defined;
+  $!flag   = $flag;
+  $!ikind  = $kind;
+  $!thread = $thread;
+  given $thread {
+    when THREAD {
+      fftw_tinit_threads();
+      fftw_tplan_with_nthreads($nthreads);
+    }
+    when OPENMP {
+      fftw_oinit_threads();
+      fftw_oplan_with_nthreads($nthreads);
+    }
+  }
 }
 
 submethod DESTROY
 {
-  fftw_cleanup;
+  given $!thread {
+    when THREAD { fftw_tcleanup_threads() }
+    when OPENMP { fftw_ocleanup_threads() }
+    default     { fftw_cleanup }
+  }
 }
 
 method advanced(Int $rank!, @dims!, Int $howmany!,
@@ -251,8 +305,8 @@ The direct transform accepts an array of real numbers and outputs a half-complex
 The reverse transform accepts a half-complex array of real numbers and outputs an array of real numbers.
 
 
-=head2 new(:@data!, :@dims?, Int :$flag? = FFTW_ESTIMATE, :$kind!, Int :$dim?)
-=head2 new(:$data!, Int :$flag? = FFTW_ESTIMATE, :$kind!, Int :$dim?)
+=head2 new(:@data!, :@dims?, Int :$flag? = FFTW_ESTIMATE, :$kind!, Int :$dim?, Int  :$thread? = NONE, Int  :$nthreads? = 1)
+=head2 new(:$data!, Int :$flag? = FFTW_ESTIMATE, :$kind!, Int :$dim?, Int  :$thread? = NONE, Int  :$nthreads? = 1)
 
 The first constructor accepts any Positional of type Int, Rat, Num (and IntStr, RatStr, NumStr);
 it allows List of Ints, Seq of Rat, shaped arrays of any base type, etc.
@@ -290,9 +344,21 @@ for the transform; it defaults to FFTW_ESTIMATE (see L<C Library Documentation>)
 The B<$dim> parameter asks for an optimization for a specific matrix rank. The parameter is optional and if present
 must be in the range 1..3.
 
+The B<$thread> parameter specifies the kind of threaded operation one wants to get; this argument is optional and if
+not specified is assumed as B<NONE>.
+There are three possibile values:
+
+=item NONE
+=item THREAD
+=item OPENMP
+
+B<THREAD> will use specific POSIX thread library while B<OPENMP> will select an OpenMP library.
+
+The B<$nthreads> specifies the number of threads to use; it defaults to 1.
+
 The second constructor accepts a scalar: an object of type B<Math::Matrix> (if that module is installed, otherwise
 it returns a B<Failure>), a B<$flag>, and a list of the kind of trasform one wants to be performed on each dimension;
-the meaning of the last two parameters is the same as in the other constructor.
+the meaning of all the other parameters is the same as in the other constructor.
 
 =head2 execute(--> Positional)
 
@@ -317,6 +383,7 @@ Some of this class' attributes are readable:
 =item $.odist   (only for the advanced interface)
 =item @.inembed (only for the advanced interface)
 =item @.onembed (only for the advanced interface)
+=item $.thread  (only for the threaded model)
 
 =head2 Wisdom interface
 

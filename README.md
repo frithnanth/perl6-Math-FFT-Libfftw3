@@ -52,8 +52,8 @@ Math::FFT::Libfftw3 provides an interface to libfftw3 and allows you to perform 
 
 ### Math::FFT::Libfftw3::C2C Complex-to-Complex transform
 
-#### new(:@data!, :@dims?, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
-#### new(:$data!, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE)
+#### new(:@data!, :@dims?, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE, Int :$dim?, Int  :$thread? = NONE, Int  :$nthreads? = 1)
+#### new(:$data!, Int :$direction? = FFTW_FORWARD, Int :$flag? = FFTW_ESTIMATE, Int :$dim?, Int  :$thread? = NONE, Int  :$nthreads? = 1)
 
 The first constructor accepts any Positional of type Int, Rat, Num, Complex (and IntStr, RatStr, NumStr, ComplexStr);
 it allows List of Ints, Array of Complex, Seq of Rat, shaped arrays of any base type, etc.
@@ -69,9 +69,23 @@ The **$direction** parameter is used to specify a direct or backward transform; 
 The **$flag** parameter specifies the way the underlying library has to analyze the data in order to create a plan
 for the transform; it defaults to `FFTW_ESTIMATE` (see the [C Library Documentation](#c-library-documentation)).
 
+The **$dim** parameter asks for an optimization for a specific matrix rank. The parameter is optional and if present
+must be in the range 1..3.
+
+The **$thread** parameter specifies the kind of threaded operation one wants to get; this argument is optional and if
+not specified is assumed as **NONE**.
+There are three possibile values:
+
+* NONE
+* THREAD
+* OPENMP
+
+**THREAD** will use specific POSIX thread library while **OPENMP** will select an OpenMP library.
+
+The **$nthreads** specifies the number of threads to use; it defaults to 1.
+
 The second constructor accepts a scalar: an object of type **Math::Matrix** (if that module is installed, otherwise
-it returns a **Failure**), a **$direction**, and a **$flag**; the meaning of the last two parameters is the same as
-in the other constructor.
+it returns a **Failure**); the meaning of all the other parameters is the same as in the other constructor.
 
 #### execute(Int :$output? = OUT-COMPLEX --> Positional)
 
@@ -106,6 +120,7 @@ Some of this class' attributes are readable:
 * $.odist   (only for the advanced interface)
 * @.inembed (only for the advanced interface)
 * @.onembed (only for the advanced interface)
+* $.thread  (only for the threaded model)
 
 #### Wisdom interface
 
@@ -204,7 +219,6 @@ array to the `new` method using `$*PERL.compiler.version < v2018.09` results in 
 There are some alternative interface to implement:
 
 * The *guru* interface to apply the same plan to different data.
-* The *multi-threaded* interface, which supports parallel one- and multi-dimensional transforms. (raw interface implemented)
 * The *distributed-memory* interface, for parallel systems supporting the MPI message-passing interface.
 
 ## Author
