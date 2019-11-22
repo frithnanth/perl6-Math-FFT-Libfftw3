@@ -216,7 +216,7 @@ array to the `new` method using `$*PERL.compiler.version < v2018.09` results in 
 
 ## TODO
 
-There are some alternative interface to implement:
+There are some alternative interfaces to implement:
 
 * The *guru* interface to apply the same plan to different data.
 * The *distributed-memory* interface, for parallel systems supporting the MPI message-passing interface.
