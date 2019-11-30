@@ -163,47 +163,6 @@ subtest {
 }, 'c2c advanced transform - trasform each column of a 2d 10x3 array';
 
 subtest {
-  my $rank = 2;
-  my $n = CArray[int32].new: 5,6;
-  my $howmany = 1;
-  my $in = CArray[num64].new: (1e0, 2e0 … 30e0);
-  my $out = CArray[num64].allocate(45);
-  my $inembed := $n;
-  my $onembed := $n;
-  my $istride = 1;
-  my $ostride = 1;
-  my $idist = 0;
-  my $odist = 0;
-  my fftw_plan $pland = fftw_plan_many_dft_r2c(
-    $rank, $n, $howmany,
-    $in,  $inembed, $istride, $idist,
-    $out, $onembed, $ostride, $odist,
-    FFTW_ESTIMATE
-  );
-  isa-ok $pland, fftw_plan, 'create plan';
-  lives-ok { fftw_execute($pland) }, 'execute plan';
-  is-deeply $out.list».round(10⁻¹²),
-    (465e0, 0e0, -15e0, 25.980762113533e0, -15e0, 8.660254037844e0, -15e0, 0e0, 0e0, 0e0, 0e0, 0e0,
-     -90e0, 123.874372842406e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0,
-     -90e0, 29.242772660962e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0,
-     -90e0, -29.242772660962e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0, 0e0)».round(10⁻¹²),
-    'direct transform';
-  fftw_destroy_plan($pland);
-  my $back = CArray[num64].allocate(45);
-  my fftw_plan $planr = fftw_plan_many_dft_c2r(
-    $rank, $n, $howmany,
-    $out,  $onembed, $istride, $idist,
-    $back, $inembed, $ostride, $odist,
-    FFTW_ESTIMATE
-  );
-  fftw_execute($planr);
-  is-deeply ($back.list »/» 30)[^30]».round(10⁻¹²),
-    (1.0, 2.0 … 30.0),
-    'inverse transform';
-  fftw_destroy_plan($planr);
-}, 'r2c & c2r advanced transform - one array contiguous in memory';
-
-subtest {
   my $rank = 1;
   my $n = CArray[int32].new: 10;
   my $howmany = 3;
