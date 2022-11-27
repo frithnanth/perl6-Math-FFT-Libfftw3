@@ -1,8 +1,8 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 use lib 'lib';
 use Test;
-use Math::FFT::Libfftw3::C2C;
+use Math::FFT::Libfftw3;
 use Math::FFT::Libfftw3::Constants;
 use NativeCall;
 
