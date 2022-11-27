@@ -22,10 +22,6 @@ jobs:
       - uses: Raku/setup-raku@v1
         with:
           raku-version: ${{ matrix.raku-version }}
-      - name: Install libfftw3-double3
-        run: |
-          sudo apt update
-          sudo apt install libfftw3-double3
       - name: Install Dependencies
         run: |
           zef install --/test --deps-only .
