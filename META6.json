@@ -8,9 +8,9 @@
   ],
   "depends": [
   ],
-  "description": "High-level bindings to libfftw3 Complex-to-Complex transform",
+  "description": "An interface to libfftw3",
   "license": "Artistic-2.0",
-  "name": "Math::FFT::Libfftw3::C2C",
+  "name": "Math::FFT::Libfftw3",
   "perl": "6",
   "provides": {
     "Math::FFT::Libfftw3::C2C": "lib/Math/FFT/Libfftw3/C2C.rakumod",
