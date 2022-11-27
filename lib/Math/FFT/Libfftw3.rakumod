@@ -1,6 +1,6 @@
 use v6;
 
-unit class Math::FFT::Libfftw3:ver<0.3.4>:auth<zef:FRITH>;
+unit class Math::FFT::Libfftw3:ver<0.3.5>:auth<zef:FRITH>;
 
 use Math::FFT::Libfftw3::C2C;
 

@@ -1,6 +1,6 @@
 use v6;
 
-unit module Math::FFT::Libfftw3::Raw:ver<0.3.4>:auth<zef:FRITH>;
+unit module Math::FFT::Libfftw3::Raw:ver<0.3.5>:auth<zef:FRITH>;
 
 use NativeCall;
 use Math::FFT::Libfftw3::Constants;

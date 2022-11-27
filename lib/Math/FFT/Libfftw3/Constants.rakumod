@@ -1,6 +1,6 @@
 use v6;
 
-unit module Math::FFT::Libfftw3::Constants:ver<0.3.4>:auth<zef:FRITH>;
+unit module Math::FFT::Libfftw3::Constants:ver<0.3.5>:auth<zef:FRITH>;
 
 constant FFTW_FORWARD         is export = -1;
 constant FFTW_BACKWARD        is export =  1;
