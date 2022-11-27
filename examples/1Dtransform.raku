@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 use Math::FFT::Libfftw3::C2C;
 use Math::FFT::Libfftw3::Constants;

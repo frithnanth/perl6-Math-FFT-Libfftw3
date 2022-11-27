@@ -1,22 +1,36 @@
 {
-  "perl" : "6",
-  "tags" : [ "math", "fft", "nativecall" ],
-  "name" : "Math::FFT::Libfftw3",
-  "version" : "0.3.3",
-  "api" : "2",
-  "description" : "Interface to libfftw3",
-  "test-depends" : [ "Test" ],
-  "provides" : {
-    "Math::FFT::Libfftw3::C2C" : "lib/Math/FFT/Libfftw3/C2C.pm6",
-    "Math::FFT::Libfftw3::Common" : "lib/Math/FFT/Libfftw3/Common.pm6",
-    "Math::FFT::Libfftw3::Constants" : "lib/Math/FFT/Libfftw3/Constants.pm6",
-    "Math::FFT::Libfftw3::Exception" : "lib/Math/FFT/Libfftw3/Exception.pm6",
-    "Math::FFT::Libfftw3::R2C" : "lib/Math/FFT/Libfftw3/R2C.pm6",
-    "Math::FFT::Libfftw3::R2R" : "lib/Math/FFT/Libfftw3/R2R.pm6",
-    "Math::FFT::Libfftw3::Raw" : "lib/Math/FFT/Libfftw3/Raw.pm6"
-  },
-  "auth" : "github:frithnanth",
-  "authors" : [ "Fernando Santagata" ],
+  "api": "2",
+  "auth": "zef:FRITH",
+  "authors": [
+    "Fernando Santagata"
+  ],
+  "build-depends": [
+  ],
+  "depends": [
+  ],
+  "description": "High-level bindings to libfftw3 Complex-to-Complex transform",
   "license": "Artistic-2.0",
-  "source-url" : "git://github.com/frithnanth/perl6-Math-FFT-Libfftw3.git"
+  "name": "Math::FFT::Libfftw3::C2C",
+  "perl": "6",
+  "provides": {
+    "Math::FFT::Libfftw3::C2C": "lib/Math/FFT/Libfftw3/C2C.rakumod",
+    "Math::FFT::Libfftw3::Common": "lib/Math/FFT/Libfftw3/Common.rakumod",
+    "Math::FFT::Libfftw3::Constants": "lib/Math/FFT/Libfftw3/Constants.rakumod",
+    "Math::FFT::Libfftw3::Exception": "lib/Math/FFT/Libfftw3/Exception.rakumod",
+    "Math::FFT::Libfftw3::R2C": "lib/Math/FFT/Libfftw3/R2C.rakumod",
+    "Math::FFT::Libfftw3::R2R": "lib/Math/FFT/Libfftw3/R2R.rakumod",
+    "Math::FFT::Libfftw3::Raw": "lib/Math/FFT/Libfftw3/Raw.rakumod"
+  },
+  "resources": [
+  ],
+  "source-url": "git://github.com/frithnanth/perl6-Math-FFT-Libfftw3.git",
+  "tags": [
+    "math",
+    "fft",
+    "nativecall"
+  ],
+  "test-depends": [
+    "Test"
+  ],
+  "version": "0.3.3"
 }

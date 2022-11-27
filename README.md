@@ -1,16 +1,12 @@
-## Math::FFT::Libfftw3
+[![Actions Status](https://github.com/frithnanth/perl6-Math-FFT-Libfftw3/workflows/test/badge.svg)](https://github.com/frithnanth/perl6-Math-FFT-Libfftw3/actions)
+
+## NAME
 
 Math::FFT::Libfftw3 - An interface to libfftw3.
 
-## Build Status
+## SYNOPSIS
 
-| Operating System  |   Build Status  | CI Provider |
-| ----------------- | --------------- | ----------- |
-| Linux             | [![Build Status](https://travis-ci.org/frithnanth/perl6-Math-FFT-Libfftw3.svg?branch=master)](https://travis-ci.org/frithnanth/perl6-Math-FFT-Libfftw3)  | Travis CI |
-
-## Example
-
-```perl6
+```raku
 use v6;
 
 use Math::FFT::Libfftw3::C2C;
@@ -26,7 +22,7 @@ my @outr = $fftr.execute;
 put @outr».round(10⁻¹²); # print the backward transform output rounded to 10⁻¹²
 ```
 
-```perl6
+```raku
 use v6;
 
 use Math::FFT::Libfftw3::C2C;
@@ -147,7 +143,7 @@ This method activates the advanced interface. The meaning of the arguments are d
 
 This method returns `self`, so it can be concatenated to the `.new()` method:
 
-```perl6
+```raku
 my $fft = Math::FFT::Libfftw3::C2C.new(data => (1..30).flat)
                                   .advanced: $rank, @dims, $howmany,
                                              @inembed, $istride, $idist,
@@ -202,17 +198,17 @@ $ zef install Math::FFT::Libfftw3
 To run the tests:
 
 ```
-$ prove -e "perl6 -Ilib"
+$ prove -e "raku -Ilib"
 ```
 
 ## Notes
 
 Math::FFT::Libfftw3 relies on a C library which might not be present in one's
-installation, so it's not a substitute for a pure Perl 6 module.
-If you need a pure Perl 6 module, Math::FourierTransform works just fine.
+installation, so it's not a substitute for a pure Raku module.
+If you need a pure Raku module, Math::FourierTransform works just fine.
 
-This module needs Perl 6 ≥ 2018.09 only if one wants to use shaped arrays as input data. An attempt to feed a shaped
-array to the `new` method using `$*PERL.compiler.version < v2018.09` results in an exception.
+This module needs Raku ≥ 2018.09 only if one wants to use shaped arrays as input data. An attempt to feed a shaped
+array to the `new` method using `$*RAKU.compiler.version < v2018.09` results in an exception.
 
 ## TODO
 

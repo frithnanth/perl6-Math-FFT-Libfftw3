@@ -1,6 +1,6 @@
 use v6;
 
-unit module Math::FFT::Libfftw3::Raw:ver<0.3.3>:auth<cpan:FRITH>;
+unit module Math::FFT::Libfftw3::Raw:ver<0.3.3>:auth<zef:FRITH>;
 
 use NativeCall;
 use Math::FFT::Libfftw3::Constants;
@@ -150,7 +150,7 @@ sub fftw_alignment_of(num64 $p is rw --> int32) is native(LIB) is export { * }
 Math::FFT::Libfftw3::Raw - An interface to libfftw3
 
 =head1 SYNOPSIS
-=begin code
+=begin code :lang<raku>
 
 use v6;
 
@@ -190,14 +190,14 @@ $ zef install Math::FFT::Libfftw3
 To run the tests:
 
 =begin code
-$ prove -e "perl6 -Ilib"
+$ prove -e "raku -Ilib"
 =end code
 
 =head1 Note
 
 Math::FFT::Libfftw3 relies on a C library which might not be present in one's
-installation, so it's not a substitute for a pure Perl6 module.
-If you need a pure Perl6 module, Math::FourierTransform works just fine.
+installation, so it's not a substitute for a pure Raku module.
+If you need a pure Raku module, Math::FourierTransform works just fine.
 
 =head1 Author
 
