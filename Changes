@@ -1,6 +1,7 @@
 Revision history for Math-FFT-Libfftw3
 
 {{$NEXT}}
+    - Documentation cleanup
 
 0.3.4  2022-11-27T20:02:43+01:00
     - Use zef ecosystem
